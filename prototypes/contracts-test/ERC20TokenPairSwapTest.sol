@@ -2,6 +2,8 @@
 pragma solidity >=0.7.0 < 0.9.0;
 
 import "./ERC20TokenPairTestable.sol";
+import "../contracts/ERC20Token.sol";
+
 
 
 contract ERC20TokenPairSwapTest is ERC20TokenPairTestable{
@@ -14,6 +16,9 @@ contract ERC20TokenPairSwapTest is ERC20TokenPairTestable{
 
         // token pair creation test
         createTokenAndPair();
+
+        tokenA.transfer(msg.sender, 1000 * DEX18);
+        tokenB.transfer(msg.sender, 1000 * DEX18);
 
         // first add liquidity test
         addLiquidity(10 * DEX18, 500 * DEX18);
