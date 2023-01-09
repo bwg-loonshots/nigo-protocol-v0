@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 import "./ERC20.sol";
 import "./libs/SafeMath.sol";
 
-contract MintableERC20 is ERC20 {
+contract MintableToken is ERC20 {
     using SafeMath for uint;
 
     event Mint(address indexed to, uint256 amount);
@@ -14,7 +14,7 @@ contract MintableERC20 is ERC20 {
     ERC20(0, _name, 18, _symbol) {
     }
 
-    function mint(address _to, uint256 _value) internal{
+    function _mint(address _to, uint256 _value) internal{
         totalSupply = totalSupply.add(_value);
         balances[_to] = balances[_to].add(_value);
         emit Mint(_to, _value);
@@ -22,7 +22,7 @@ contract MintableERC20 is ERC20 {
 
     }
 
-    function burn(address _from, uint _value) internal {
+    function _burn(address _from, uint _value) internal {
         balances[_from] = balances[_from].sub(_value);
         totalSupply = totalSupply.sub(_value);
         emit Burn(address(0), _value);
