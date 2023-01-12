@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="../js/tokenAbi.js"></script>
+<title>testTx</title>
+</head>
+<body>
+<h1>TestTx</h1>
+<button onclick="connect()">연결하기</button>
+<h2>연결정보</h2>
+<table border="1">
+	<tr>
+		<th>계정주소</th>
+		<td id="address"></td>
+	</tr>
+</table>
+<h2>Tx</h2>
+<table border="1">
+	<tr>
+		<th>토큰</th>
+		<th>from</th>
+		<th>to</th>
+		<th>amount</th>
+		<th>button</th>
+	</tr>
+</table>
+
+
+<script type="text/javascript">
+const tokenA = '0x7BcbEe697f7A6a362b02A671923c568d4ddF3Cab'
+const tokenB = '0xE12d5180Bd953d9a62E5f3a8f7941Ca61e5588dc'
+const _DEX18 = 10**18
+
+let web3;
+let BN;
+let accountAddr;
+let tokenAContract;
+let tokenBContract;
+
+
+function connect(){
+	web3.eth.requestAccounts().then(async (address) => {
+		accountAddr=address[0]
+		document.getElementById('address').innerHTML=address[0]
+	})
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('address').innerHTML='연결준비중'
+		BN = web3.utils.BN
+	}else{
+		document.getElementById('address').innerHTML='메타마스크가 없습니다'	
+	}
+}
+</script>
+
+</body>
+</html>

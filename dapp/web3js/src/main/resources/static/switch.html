@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<title>switchChain</title>
+</head>
+<body>
+<h1>switchChain</h1>
+<button onclick="connect()">연결하기</button>
+<h2>연결정보</h2>
+<table border="1">
+	<tr>
+		<th>network ID</th>
+		<td id="netId"></td>
+	</tr>
+	<tr>
+		<th>network type</th>
+		<td id="netType"></td>
+	</tr>
+	<tr>
+		<th>계정주소</th>
+		<td id="address"></td>
+	</tr>
+	<tr>
+		<th>balance</th>
+		<td id="balance"></td>
+	</tr>
+	<tr>
+		<th>peer count</th>
+		<td id="peerCount"></td>
+	</tr>
+	<tr>
+		<th>node info</th>
+		<td id="nodeInfo"></td>
+	</tr>
+	<tr>
+		<th>current block number</th>
+		<td id="blockNumber"></td>
+	</tr>		
+</table>
+<h2>Switch</h2>
+<div>
+	<input type="radio", id="chainIdChoice1", name="chainId" value="1"/>
+	<label for="chainIdChoice1">Mainnet</label>
+	
+	<input type="radio", id="chainIdChoice2", name="chainId" value="2"/>
+	<label for="chainIdChoice2">chainId2</label>
+	
+	<input type="radio", id="chainIdChoice5", name="chainId" value="5"/>
+	<label for="chainIdChoice5">Goerli</label>
+	
+	<input type="radio", id="chainIdChoice56", name="chainId" value="56"/>
+	<label for="chainIdChoice56">BSC</label>
+	
+	<input type="radio", id="chainIdChoice100", name="chainId" value="100"/>
+	<label for="chainIdChoice100">Gnosis</label>
+	
+	<input type="radio", id="chainIdChoice137", name="chainId" value="137"/>
+	<label for="chainIdChoice137">Polygon(noChainTest)</label>
+</div>
+<button onclick="switchPd()">변경하기</button>
+<h2>addToken</h2>
+<button onclick="addToken()">토큰추가</button>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+let txNum;
+let blockNum;
+const chainInfo = {
+	137 : {
+		chainId: '0x89',
+		chainName: 'Polygoni Mainnet',
+		nativeCurrency: {
+			symbol: 'MATIC',
+			decimals: 18
+		},
+		rpcUrls: ['https://polygon.llamarpc.com',],
+		blockExplorerUrls: ['https://polygonscan.com',]
+	}
+}
+
+function connect(){
+	document.getElementById('nodeInfo').innerHTML= ''
+	web3.eth.requestAccounts().then((address) => {
+		web3.eth.net.getId().then((netId)=>{
+			document.getElementById('netId').innerHTML= netId
+		})
+		
+		web3.eth.net.getNetworkType().then((netType)=>{
+			document.getElementById('netType').innerHTML= netType
+		})
+		accountAddr=address[0]
+		document.getElementById('address').innerHTML=address[0]
+		
+		web3.eth.getBalance(address[0]).then((balance) => {
+			document.getElementById('balance').innerHTML= balance/1000000000000000000
+		})
+		
+		web3.eth.net.getPeerCount().then((peerCount) => {
+			document.getElementById('peerCount').innerHTML= peerCount
+		})
+		
+		web3.eth.getNodeInfo().then((nodeInfo) => {
+			document.getElementById('nodeInfo').innerHTML= nodeInfo
+		})
+		
+		web3.eth.getBlockNumber().then((blockNumber)=>{
+			blockNum=blockNumber
+			document.getElementById('blockNumber').innerHTML= blockNumber
+		})
+	})
+}
+
+async function switchPd(){
+	const chainIdList = document.getElementsByName('chainId')
+	let chainId
+	chainIdList.forEach((chainIdChoice)=>{
+		if(chainIdChoice.checked){
+			chainId = chainIdChoice.value
+		}
+	})
+	const hex = web3.utils.toHex(chainId)
+	try{
+		await window.ethereum.request({
+			method: 'wallet_switchEthereumChain',
+			params: [{chainId:hex}]
+		})
+	}catch(e){
+		if(e.code==4902 ){
+			if(!(chainId in chainInfo)){
+				alert('not ready for new chain!')
+			}
+			await window.ethereum.request({
+				method: 'wallet_addEthereumChain',
+				params: [chainInfo[137]]
+			})
+		}
+	}
+	
+	connect()
+}
+
+async function addToken(){
+	await window.ethereum.request({
+		method:'wallet_watchAsset',
+		params: {
+			type:'ERC20',
+			options:{
+				address:'0xeE06BdeCc3B192905D6563fEeA9aEdB12dF9c9C3',
+				symbol:'T02-T01',
+				decimals:18,
+			}
+		}
+	}).then((success) => {
+	    if (success) {
+       		console.log('token successfully added to wallet!');
+      	} else {
+	        throw new Error('Something went wrong.');
+      	}
+	}).catch(console.err)
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('address').innerHTML='연결준비중'
+	}else{
+		document.getElementById('address').innerHTML='메타마스크가 없습니다'	
+	}
+}
+</script>
+
+</body>
+</html>

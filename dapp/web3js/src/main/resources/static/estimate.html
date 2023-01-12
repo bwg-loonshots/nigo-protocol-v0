@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="../js/tokenAbi.js"></script>
+<script src="../js/pairAbi.js"></script>
+<script src="../js/tool.js"></script>
+<title>Estimate</title>
+</head>
+<body>
+<h1>Estimate</h1>
+<div id="address"></div>
+<h3>Estimate fee</h3>
+<div><button onclick="getEstimateFee()">reset</button></div>
+<div>baseFee(최신 블록의 baseFee) : <span id="baseFee"></span></div>
+<div>priorityM(최신 블록의 priority fee의 중위값) : <span id="priorityM"></span></div>
+<div>가스비 추정 계산식 : (baseFee + priorityM) * estimate unit</div>
+<h3>Tx</h3>
+<table border="1">	
+	<tr>
+		<th>method</th>
+		<th>input</th>
+		<th>estimate unit</th>
+		<th>calculate</th>
+		<th>medium</th>
+	</tr>
+	<tr>
+		<td>
+			transferA
+		</td>
+		<td>
+			<div>to : 0x39E4F......</div>
+			<div>value : 0.1</div>
+		</td>
+		<td>
+			<div id="transfer_estimate"></div>
+		</td>
+		<td id="transfer_calculate"></td>
+		<td>
+			<button onclick="transferM()">tranfer</button>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			swap
+		</td>
+		<td>
+			<div>tokenIn : 0x7BcbEe.....</div>
+			<div>amountIn : 0.1</div>
+			<div>to : 0xDa670......</div>
+		</td>
+		<td>
+			<div id="swap_estimate"></div>
+		</td>
+		<td id="swap_calculate"></td>
+		<td>
+			<button onclick="swapM()">swap</button>
+		</td>
+	</tr>
+</table>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+let provider;
+
+let baseFee;
+let priorityM;
+
+let Contracts = {};
+let estimateTransfer
+let estimatePair
+const DEX9 = 10**9
+const DEX18 = 10**18
+const value = mul18('0.1').toString()
+const ADDR_BOOK = {
+	tokenA : '0x7BcbEe697f7A6a362b02A671923c568d4ddF3Cab',
+	tokenB : '0xE12d5180Bd953d9a62E5f3a8f7941Ca61e5588dc',
+	pair : '0xeE06BdeCc3B192905D6563fEeA9aEdB12dF9c9C3',
+	accountB : '0x39E4F4A4364E6d590F5245f27Dc07fC4861Ef6a2'
+}
+
+async function getEstimateFee(){
+	baseFee = await web3.eth.getBlock("latest").then((block) => {return Number(block.baseFeePerGas)})
+	document.getElementById("baseFee").innerHTML = baseFee / DEX9
+	
+	await web3.eth.getFeeHistory(1, "latest", [50]).then((feeHistory) => {
+	  	const blocks = formatFeeHistory(feeHistory)
+	  	priorityM = blocks[0].priorityFeePerGas[0];
+	  	document.getElementById("priorityM").innerHTML = priorityM / DEX9
+	});
+
+	estimateTransfer = await Contracts['token'].methods.transfer(ADDR_BOOK['accountB'],value).estimateGas({from:accountAddr})
+	document.getElementById("transfer_estimate").innerHTML = estimateTransfer
+	document.getElementById("transfer_calculate").innerHTML = (baseFee + priorityM) * estimateTransfer / DEX18
+	
+	estimatePair = await Contracts['pair'].methods.swap(ADDR_BOOK['tokenA'],value,accountAddr).estimateGas({from:accountAddr})
+	document.getElementById("swap_estimate").innerHTML = estimatePair 
+	document.getElementById("swap_calculate").innerHTML = (baseFee + priorityM) * estimatePair / DEX18
+}
+
+function initContract(){
+	Contracts['token'] = new web3.eth.Contract(tokenAbi,ADDR_BOOK['tokenA'])
+	Contracts['pair'] = new web3.eth.Contract(pairAbi,ADDR_BOOK['pair'])
+	
+	getEstimateFee() 
+}
+
+
+async function transferA(option){
+	const start = new Date();
+	await Contracts['token'].methods.transfer(ADDR_BOOK['accountB'],value).send(option)
+	const end = new Date();
+	return end - start
+}
+
+async function transferM(){
+	getEstimateFee()
+	const option = {
+		from : accountAddr,
+		maxPriorityFeePerGas : priorityM,
+		maxFeePerGas : baseFee + priorityM,
+		gasLimit : estimateTransfer > 21000 ? estimateTransfer : 21000
+	}
+	document.getElementById("transfer_medium").innerHTML = await transferA(option) 
+}
+
+async function swap(option){
+	const start = new Date();
+	const estimate = await Contracts['pair'].methods.swap(ADDR_BOOK['tokenA'],value,accountAddr).send(option)
+	const end = new Date();
+	return end - start
+}
+
+async function swapM(){
+	getEstimateFee()
+	const option = {
+		from : accountAddr,
+		maxPriorityFeePerGas : priorityM,
+		maxFeePerGas :  baseFee + priorityM,
+		gasLimit : estimatePair > 21000 ? estimatePair : 21000
+	}
+	document.getElementById("swap_medium").innerHTML = await swap(option) 
+}
+
+function formatFeeHistory(result) {
+	let blockNum = web3.utils.hexToNumber(result.oldestBlock)
+	let index = 0;
+	const blocks = [];
+	blocks.push({
+		number: blockNum,
+		baseFeePerGas: Number(result.baseFeePerGas[index]),
+		gasUsedRatio: Number(result.gasUsedRatio[index]),
+		priorityFeePerGas: result.reward[index].map(x => Number(x)),
+    });
+	return blocks;
+}
+
+
+window.onload = async () => {
+	if(!window.ethereum){
+		document.getElementById('address').innerHTML = '메타마스크가 없습니다'
+		return
+	}
+	web3 = new Web3(window.ethereum)
+	try{
+		const address = await web3.eth.requestAccounts()
+		document.getElementById('address').innerHTML = accountAddr = address[0]
+		initContract()
+	}catch(e){
+		document.getElementById('address').innerHTML = 'fail to request account'
+		return
+	}	
+}
+</script>
+
+</body>
+</html>

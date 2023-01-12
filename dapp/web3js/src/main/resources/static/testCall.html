@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<title>testCall</title>
+</head>
+<body>
+<h1>testCall</h1>
+<button onclick="connect()">연결하기</button>
+<h2>연결정보</h2>
+<table border="1">
+	<tr>
+		<th>network ID</th>
+		<td id="netId"></td>
+	</tr>
+	<tr>
+		<th>network type</th>
+		<td id="netType"></td>
+	</tr>
+	<tr>
+		<th>계정주소</th>
+		<td id="address"></td>
+	</tr>
+	<tr>
+		<th>balance</th>
+		<td id="balance"></td>
+	</tr>
+	<tr>
+		<th>user tx count</th>
+		<td id="txCount"></td>
+	</tr>
+	<tr>
+		<th>peer count</th>
+		<td id="peerCount"></td>
+	</tr>
+	<tr>
+		<th>node info</th>
+		<td id="nodeInfo"></td>
+	</tr>
+	<tr>
+		<th>current block number</th>
+		<td id="blockNumber"></td>
+	</tr>		
+</table>
+<script type="text/javascript">
+let web3;
+let accountAddr;
+const DEX18 = 10**18 
+
+async function connect(){
+	document.getElementById('nodeInfo').innerHTML= ''
+	try{
+		const address = await web3.eth.requestAccounts()
+		document.getElementById('address').innerHTML = accountAddr = address[0]
+	}catch(e){
+		alert('fail to request account')
+		return
+	}
+	document.getElementById('netId').innerHTML = await web3.eth.net.getId()
+	
+	document.getElementById('netType').innerHTML = await web3.eth.net.getNetworkType()
+	
+	document.getElementById('balance').innerHTML = await web3.eth.getBalance(accountAddr) / DEX18
+	
+	document.getElementById('txCount').innerHTML = await web3.eth.getTransactionCount(accountAddr)
+	
+	document.getElementById('peerCount').innerHTML= await web3.eth.net.getPeerCount()
+		
+	document.getElementById('nodeInfo').innerHTML = await web3.eth.getNodeInfo()
+		
+	document.getElementById('blockNumber').innerHTML = await web3.eth.getBlockNumber()
+	
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('address').innerHTML='연결준비중'
+	}else{
+		document.getElementById('address').innerHTML='메타마스크가 없습니다'	
+	}
+}
+</script>
+
+</body>
+</html>

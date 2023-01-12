@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="../js/tool.js"></script>
+<title>Subscribe</title>
+</head>
+<body>
+<h1>Subscribe</h1>
+<div id="address"></div>
+<h3>logs</h3>
+<table border="1">	
+	<tr>
+		<th>Event</th>
+		<th>Output</th>
+	</tr>
+	<tr>
+		<th>result</th>
+		<td id="log_result"></td>
+	</tr>
+	<tr>
+		<th>connected</th>
+		<td id="log_connected"></td>
+	</tr>
+	<tr>
+		<th>data</th>
+		<td id="log_data"></td>
+	</tr>
+	<tr>
+		<th>changed</th>
+		<td id="log_changed"></td>
+	</tr>
+	<tr>
+		<th>error</th>
+		<td id="log_error"></td>
+	</tr>
+</table>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+let provider;
+const DEX18 = 10**18
+const ADDR_BOOK = {
+	tokenA : '0x7BcbEe697f7A6a362b02A671923c568d4ddF3Cab',
+	tokenB : '0xE12d5180Bd953d9a62E5f3a8f7941Ca61e5588dc',
+	pair : '0xeE06BdeCc3B192905D6563fEeA9aEdB12dF9c9C3',
+	wEth : '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
+}
+
+
+function pendingTransactions(){
+	alert("not yet...")
+}
+
+function newBlockHeaders(){
+	alert("not yet...")
+}
+
+function syncing(){
+	alert("not yet...")
+}
+
+function logs(){
+	const options = {
+			address : ADDR_BOOK.tokenA ,
+			topics:[
+				'0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+			]
+	}
+	let subscription = web3.eth.subscribe('logs',options,function(error,result){
+		if(!error){
+			console.log("result")
+			console.log(result)
+			document.getElementById('log_result').innerHTML = objectParsing(result,0)
+		}
+	}).on("connected", function(subscriptionId){
+		console.log("connected")
+	    console.log(subscriptionId);
+		document.getElementById('log_connected').innerHTML = subscriptionId
+	}).on("data", function(log){
+		console.log("data")
+	    console.log(log);
+		document.getElementById('log_data').innerHTML = objectParsing(log,0)
+	}).on("changed", function(log){
+		console.log("changed")
+		console.log(log);
+		document.getElementById('log_changed').innerHTML = objectParsing(log,0)
+	}).on("error",function(log){
+		console.log("error")
+		console.log(log);
+		document.getElementById('log_error').innerHTML = objectParsing(log,0)
+	});	
+	
+	subscription.unsubscribe(function(error, success){
+	    if(success)
+	        console.log('Successfully unsubscribed!');
+	});
+	
+}
+
+window.onload = async () => {
+	if(!window.ethereum){
+		document.getElementById('address').innerHTML = '메타마스크가 없습니다'
+		return
+	}
+	web3 = new Web3(window.ethereum)
+	try{
+		const address = await web3.eth.requestAccounts()
+		document.getElementById('address').innerHTML = accountAddr = address[0]
+		logs()
+	}catch(e){
+		document.getElementById('address').innerHTML = 'fail to request account'
+		return
+	}
+}
+</script>
+
+</body>
+</html>

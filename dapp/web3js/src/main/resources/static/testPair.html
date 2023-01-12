@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="../js/pairAbi.js"></script>
+<script src="../js/tool.js"></script>
+<title>testPair</title>
+</head>
+<body>
+<h1>TestPair</h1>
+<button onclick="connect()">연결하기</button>
+<h3>연결정보</h3>
+<table border="1">
+	<tr>
+		<th>계정주소</th>
+		<td id="address"></td>
+	</tr>
+	<tr>
+		<th>보유 Liquidity</th>
+		<td id="myLiquidity"></td>
+	</tr>
+</table>
+<h3>Pair 정보</h3>
+<table border="1">
+	<tr>
+		<th>method</th>
+		<th>tokenA</th>
+		<th>tokenB</th>
+		<th>blockTime</th>
+	</tr>
+	<tr>
+		<th>reserves</th>
+		<td id="R_tokenA"></td>
+		<td id="R_tokenB"></td>
+	</tr>
+	<tr>
+		<th>twap</th>
+		<td id="T_tokenA"></td>
+		<td id="T_tokenB"></td>
+		<td id="T_time"></td>
+	</tr>
+</table>
+<h3>Methods</h3>
+<table>
+	<tr>
+		<th></th>
+		<th>amountA</th>
+		<th>amountB</th>
+	</tr>
+	<tr>
+		<td><button onclick="addLiquidity()">addLiquidity</button></td>
+		<td><input id="amountA"/></td>
+		<td><input id="amountB"/></td>
+	</tr>
+</table>
+<table>
+	<tr>
+		<th></th>
+		<th>liquidity</th>
+	</tr>
+	<tr>
+		<td><button onclick="removeLiquidity()">removeLiquidity</button></td>
+		<td><input id="liquidity"/></td>
+	</tr>
+</table>
+<table>
+	<tr>
+		<th></th>
+		<th>tokenIn</th>
+		<th>amountIn</th>
+		<th>to</th>
+	</tr>
+	<tr>
+		<td>
+			<button onclick="swap()">swap</button>
+			<button onclick="estimateGas()">estimateGas</button>
+		</td>
+		<td><input id="tokenIn"/></td>
+		<td><input id="amountIn"/></td>
+		<td><input id="to_addr"/></td>
+	</tr>
+</table>
+
+<script type="text/javascript">
+const tokens = {
+		'A' : '0x7BcbEe697f7A6a362b02A671923c568d4ddF3Cab',
+		'B' : '0xE12d5180Bd953d9a62E5f3a8f7941Ca61e5588dc' 
+	}
+	const _DEX18 = 10**18
+const pairAddr = '0xeE06BdeCc3B192905D6563fEeA9aEdB12dF9c9C3'
+
+let web3;
+let BN;
+let accountAddr;
+let pairContract
+
+
+function connect(){
+	web3.eth.requestAccounts().then(async (address) => {
+		accountAddr=address[0]
+		document.getElementById('address').innerHTML=address[0]
+	
+		pairContract = new web3.eth.Contract(pairAbi,pairAddr)
+		
+		let myLiquidity = await pairContract.methods.balanceOf(accountAddr).call()
+		document.getElementById('myLiquidity').innerHTML = myLiquidity/_DEX18
+		
+		let reverses = await pairContract.methods.getReserves().call()
+		document.getElementById('R_tokenA').innerHTML = reverses[0]/_DEX18
+		document.getElementById('R_tokenB').innerHTML = reverses[1]/_DEX18
+		
+		let twap = await pairContract.methods.getTWAP().call()
+		document.getElementById('T_tokenA').innerHTML = twap['_twapA']/_DEX18
+		document.getElementById('T_tokenB').innerHTML = twap['_twapB']/_DEX18
+		document.getElementById('T_time').innerHTML = twap['_blockTimestampLast']
+	})
+}
+
+async function addLiquidity(){
+	const amountA = mul18(document.getElementById('amountA').value).toString()
+	const amountB = mul18(document.getElementById('amountB').value).toString()
+	await pairContract.methods.addLiquidity(amountA,amountB).send({from:accountAddr})
+	
+	connect()
+}
+
+async function removeLiquidity(){
+	const liquidity = mul18(document.getElementById('liquidity').value).toString()
+	await pairContract.methods.removeLiquidity(liquidity).send({from:accountAddr})
+	
+	connect()
+}
+
+async function swap(){
+	const tokenIn = document.getElementById('tokenIn').value
+	const amountIn = mul18(document.getElementById('amountIn').value).toString()
+	const to_addr = document.getElementById('to_addr').value
+	await pairContract.methods.swap(tokenIn,amountIn,to_addr).send({from:accountAddr})
+	
+	connect()
+}
+
+async function estimateGas(){
+	const tokenIn = document.getElementById('tokenIn').value
+	const amountIn = mul18(document.getElementById('amountIn').value).toString()
+	const to_addr = document.getElementById('to_addr').value
+	console.log(await pairContract.methods.swap(tokenIn,amountIn,to_addr).estimateGas({from:accountAddr}))
+	
+	connect()
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('address').innerHTML='연결준비중'
+		BN = web3.utils.BN
+	}else{
+		document.getElementById('address').innerHTML='메타마스크가 없습니다'	
+	}
+}
+</script>
+
+</body>
+</html>
