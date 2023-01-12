@@ -54,7 +54,7 @@ contract StakingPool is IERC3156FlashLender{
     ) external returns (bool) {
 
         require(tokens[token] != address(0), "nigo: unsupported token");
-        return StakableToken(tokens[token]).erc3156(receiver, amount, data);
+        return StakableToken(tokens[token]).flashLoan(receiver, amount, data);
 
     }
     

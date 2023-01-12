@@ -38,7 +38,7 @@ contract StakableToken is MintableToken {
         return IERC20(token).balanceOf(address(this));
     }
 
-    function stake(address from) external returns(uint staked){
+    function stake(address from) external lock returns(uint staked){
         // before staking, staker should transfer token to this contract
         uint balance = _stakedBalance();
         uint amount = balance.sub(reserved);
@@ -57,7 +57,7 @@ contract StakableToken is MintableToken {
 
     }
 
-    function unstake(address from, uint staked) external returns(uint amount) {
+    function unstake(address from, uint staked) external lock returns(uint amount) {
         
         uint balance = _stakedBalance();
         amount = balance.mul(staked) / totalSupply;
@@ -70,11 +70,11 @@ contract StakableToken is MintableToken {
 
     }
 
-    function erc3156(
+    function flashLoan(
         IERC3156FlashBorrower receiver,
         uint amount,
         bytes calldata data
-    ) external returns(bool) {
+    ) external lock returns(bool) {
 
         token._transfer(address(receiver), amount);
 
@@ -83,11 +83,13 @@ contract StakableToken is MintableToken {
             == keccak256("ERC3156FlashBorrower.onFlashLoan"),
             "nigo: IERC3156 callback failed");
 
+        uint expect = reserved.add(_flashFee(amount));
         uint balance = _stakedBalance();
 
-        require(
-            balance > reserved + _flashFee(amount), 
-            "nigo: not enough repayment");
+        if(balance < expect) {
+            token._transferFrom(address(receiver), address(this), expect - balance);
+            balance = expect;
+        }
 
         reserved = balance;
 
