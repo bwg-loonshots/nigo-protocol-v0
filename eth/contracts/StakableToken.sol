@@ -14,7 +14,7 @@ contract StakableToken is MintableToken {
 
     uint public reserved;
 
-    uint public flashFee = 3; // 1 == 0.01%
+    uint public fee = 30; // 1 == 0.01%, 0.3 default
 
     constructor(address _token)
     MintableToken(
@@ -79,20 +79,28 @@ contract StakableToken is MintableToken {
         token._transfer(address(receiver), amount);
 
         require(
-            receiver.onFlashLoan(address(receiver), token, amount, flashFee, data)
+            receiver.onFlashLoan(address(receiver), token, amount, fee, data)
             == keccak256("ERC3156FlashBorrower.onFlashLoan"),
             "nigo: IERC3156 callback failed");
 
         uint balance = _stakedBalance();
 
         require(
-            balance * 1000 > reserved  * 1000 + (amount * flashFee), 
+            balance > reserved + _flashFee(amount), 
             "nigo: not enough repayment");
 
         reserved = balance;
 
         return true;
-        
+
+    }
+
+    function _flashFee(uint amount) internal view returns(uint256) {
+        return amount.mul(fee) / 10000;
+    }
+
+    function flashFee(uint amount) external view returns(uint256) {
+        return _flashFee(amount);
     }
 
 
