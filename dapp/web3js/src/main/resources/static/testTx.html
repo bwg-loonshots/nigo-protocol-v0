@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="../js/tokenAbi.js"></script>
+<script src="../js/tool.js"></script>
+<title>testTx</title>
+</head>
+<body>
+<h1>TestTx</h1>
+<button onclick="connect()">연결하기</button>
+<h2>연결정보</h2>
+<table border="1">
+	<tr>
+		<th>계정주소</th>
+		<td id="address"></td>
+	</tr>
+	<tr>
+		<th>balance</th>
+		<td id="balance"></td>
+	</tr>
+	<tr>
+		<th>tokenA balance</th>
+		<td id="balanceA"></td>
+	</tr>
+	<tr>
+		<th>tokenB balance</th>
+		<td id="balanceB"></td>
+	</tr>
+</table>
+<h2>Tx</h2>
+<table border="1">
+	<tr>
+		<th>토큰</th>
+		<th>from</th>
+		<th>to</th>
+		<th>amount</th>
+		<th>button</th>
+	</tr>
+	<tr>
+		<th>tokenA(T02)</th>
+		<td><input id="A_from"/></td>
+		<td><input id="A_to"/></td>
+		<td><input id="A_amount" type="number"/></td>
+		<th>
+			<button onclick="transfer('A')">transfer</button>
+			<button onclick="transferFrom('A')">transferFrom</button>
+		</th>
+	</tr>
+	<tr>
+		<th>tokenB(T01)</th>
+		<td><input id="B_from"/></td>
+		<td><input id="B_to"/></td>
+		<td><input id="B_amount" type="number"/></td>
+		<th>
+			<button onclick="transfer('B')">transfer</button>
+			<button onclick="transferFrom('B')">transferFrom</button>
+		</th>
+	</tr>
+</table>
+<h2>allowance</h2>
+<table border="1">
+	<tr>
+		<th>토큰</th>
+		<th>spender</th>
+		<th>allowance</th>
+		<th>button</th>
+	</tr>
+	<tr>
+		<th>tokenA(T02)</th>
+		<th><input id="A_spender"/></th>
+		<th><input id="A_allowance"/></th>
+		<th><button onclick="allowance('A')">check</button>
+		<button onclick="approve('A')">approve</button></th>
+	</tr>
+	<tr>
+		<th>tokenB(T01)</th>
+		<th><input id="B_spender"/></th>
+		<th><input id="B_allowance"/></th>
+		<th><button onclick="allowance('B')">check</button>
+		<button onclick="approve('B')">approve</button></th>
+	</tr>
+</table>
+<h2>result</h2>
+<div id="result"></div>
+<script type="text/javascript">
+const tokens = {
+	'A' : '0x7BcbEe697f7A6a362b02A671923c568d4ddF3Cab',
+	'B' : '0xE12d5180Bd953d9a62E5f3a8f7941Ca61e5588dc' 
+}
+const _DEX18 = 10**18
+
+let web3;
+let BN;
+let accountAddr;
+let Contracts = {};
+
+
+function connect(){
+	web3.eth.requestAccounts().then(async (address) => {
+		accountAddr=address[0]
+		document.getElementById('address').innerHTML=address[0]
+		await web3.eth.getBalance(address[0]).then((balance) => {
+			document.getElementById('balance').innerHTML= balance/_DEX18
+		})
+		
+		for(token in tokens){
+			document.getElementById(token+'_from').value=address[0]
+			
+			Contracts[token] = new web3.eth.Contract(tokenAbi,tokens[token])
+			let balance = await Contracts[token].methods.balanceOf(accountAddr).call()
+			document.getElementById('balance'+token).innerHTML= balance/_DEX18
+		}
+	})
+}
+
+async function transfer(token){
+	const _to = document.getElementById(token+'_to').value
+	const _value = mul18(document.getElementById(token+'_amount').value).toString()
+	const rslt = await Contracts[token].methods.transfer(_to,_value).send({from:accountAddr})
+	document.getElementById('result').innerHTML = objectParsing(rslt,0)
+}
+
+async function transferFrom(token){
+	const _from = document.getElementById(token+'_from').value
+	const _to = document.getElementById(token+'_to').value
+	const _value = mul18(document.getElementById(token+'_amount').value).toString()
+	const rslt = await Contracts[token].methods.transferFrom(_from,_to,_value).send({from:accountAddr})
+	document.getElementById('result').innerHTML = objectParsing(rslt,0)
+}
+
+async function allowance(token){
+	const spender = document.getElementById(token+'_spender').value
+	let allowance = await Contracts[token].methods.allowance(accountAddr,spender).call()
+	document.getElementById(token+'_allowance').value = allowance/_DEX18
+}
+
+async function approve(token){
+	const spender = document.getElementById(token+'_spender').value
+	const allowance = mul18(document.getElementById(token+'_allowance').value).toString()
+	let rslt = await Contracts[token].methods.approve(spender,allowance).send({from:accountAddr})
+	document.getElementById('result').innerHTML = objectParsing(rslt,0)
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('address').innerHTML='연결준비중'
+		BN = web3.utils.BN
+	}else{
+		document.getElementById('address').innerHTML='메타마스크가 없습니다'	
+	}
+}
+</script>
+
+</body>
+</html>
