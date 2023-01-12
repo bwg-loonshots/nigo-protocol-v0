@@ -2,24 +2,52 @@
 pragma solidity >=0.8.0;
 
 import "./MintableToken.sol";
+import "./libs/SafeTransfer.sol";
 
 contract StakableToken is MintableToken {
+    using SafeMath for uint;
+    using SafeTransfer for address;
 
-    address public creator;
+    address public token;
 
-    constructor(string memory _name, string memory _symbol) 
-    MintableToken(_name, _symbol) {
-        creator = msg.sender;
+    uint public reserved;
+
+    constructor(address _token)
+    MintableToken(
+        string(abi.encodePacked("Nigo Staked", StakableToken(token).name())),
+        string(abi.encodePacked("ng", StakableToken(token).symbol()))) {
+        token = _token;
     }
 
-    function mint(address to, uint256 value) external{
-        require(creator == msg.sender, "Nigo:minting denied");
-        _mint(to, value);
+    function stake(address from) external returns(uint staked){
+
+        uint balance = IERC20(token).balanceOf(address(this));
+        uint amount = balance.sub(reserved);
+
+        require(amount > 0, "not found staked value");
+
+        if(totalSupply == 0) {
+            staked = amount;
+        } else {
+            staked = amount.mul(totalSupply) / reserved;
+        }
+
+        _mint(from, staked);
+
+        reserved = balance;
+
     }
 
-    function burn(address from, uint value) external {
-        require(creator == msg.sender, "Nigo:burning denied");
-        _burn(from, value);
+    function unstake(address from, uint staked) external returns(uint amount) {
+
+        amount = IERC20(token).balanceOf(address(this)).mul(staked) / totalSupply;
+
+        _burn(from, staked);
+
+        token._transfer( from, amount);
+
+        reserved = IERC20(token).balanceOf(address(this));
+
     }
 
 }

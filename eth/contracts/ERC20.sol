@@ -32,25 +32,25 @@ contract ERC20 is IERC20{
 
     }
 
-    function transfer(address _to, uint256 _value) external override returns(bool success) {
-
-        balances[msg.sender] = balances[msg.sender].sub(_value);
-        balances[_to] = balances[_to].add(_value);
-        emit Transfer(msg.sender, _to, _value);
+    function transfer(address to, uint256 value) external override returns(bool success) {
+        
+        balances[msg.sender] = balances[msg.sender].sub(value);
+        balances[to] = balances[to].add(value);
+        emit Transfer(msg.sender, to, value);
         return true;
 
     }
 
     function transferFrom(
-        address _from, 
-        address _to, 
-        uint256 _value
+        address from, 
+        address to, 
+        uint256 value
         ) external override returns (bool success) {
 
-        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-        balances[_to] = balances[_to].add(_value);
-        balances[_from] = balances[_from].sub(_value);
-        emit Transfer(_from, _to, _value);
+        allowed[from][msg.sender] = allowed[from][msg.sender].sub(value);
+        balances[to] = balances[to].add(value);
+        balances[from] = balances[from].sub(value);
+        emit Transfer(from, to, value);
         return true;
 
     }
