@@ -70,33 +70,6 @@ contract StakableToken is MintableToken {
 
     }
 
-    function flashLoan(
-        IERC3156FlashBorrower receiver,
-        uint amount,
-        bytes calldata data
-    ) external lock returns(bool) {
-
-        token._transfer(address(receiver), amount);
-
-        require(
-            receiver.onFlashLoan(address(receiver), token, amount, fee, data)
-            == keccak256("ERC3156FlashBorrower.onFlashLoan"),
-            "nigo: IERC3156 callback failed");
-
-        uint expect = reserved.add(_flashFee(amount));
-        uint balance = _stakedBalance();
-
-        if(balance < expect) {
-            token._transferFrom(address(receiver), address(this), expect - balance);
-            balance = expect;
-        }
-
-        reserved = balance;
-
-        return true;
-
-    }
-
     function _flashFee(uint amount) internal view returns(uint256) {
         return amount.mul(fee) / 10000;
     }
@@ -105,5 +78,60 @@ contract StakableToken is MintableToken {
         return _flashFee(amount);
     }
 
+    function flashLoan(
+        IERC3156FlashBorrower receiver,
+        uint amount,
+        bytes calldata data
+    ) external lock returns(bool) {
+
+        token._transfer(address(receiver), amount);
+
+        uint _fee = _flashFee(amount);
+
+        require(
+            receiver.onFlashLoan(address(receiver), token, amount, _fee, data)
+            == keccak256("ERC3156FlashBorrower.onFlashLoan"),
+            "nigo: IERC3156 callback failed");
+
+        require(
+            token._transferFrom(address(receiver), address(this), amount.add(_fee)),
+            "nigo: repay failed"
+            );
+
+
+        reserved = _stakedBalance();
+
+        return true;
+
+    }
+
+    function flashMint(
+        IERC3156FlashBorrower receiver,
+        uint amount,
+        bytes calldata data
+    ) external lock returns(bool) {
+
+        _mint(address(receiver), amount);
+
+        uint _fee = _flashFee(amount);
+
+        require(
+            receiver.onFlashLoan(address(receiver), token, amount, _fee, data)
+            == keccak256("ERC3156FlashBorrower.onFlashLoan"),
+            "nigo: IERC3156 callback failed");
+        
+        uint repay = amount.add(_fee);
+        uint _allowed = allowed[address(receiver)][address(this)];
+
+        require(
+            _allowed > repay,
+            "nigo: repay not approved");
+
+        allowed[address(receiver)][address(this)] = _allowed - repay;
+        _burn(address(receiver), repay);
+
+        return true;
+
+    }
 
 }
