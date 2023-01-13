@@ -4,9 +4,11 @@ pragma solidity >=0.8.0;
 import "./MintableToken.sol";
 import "./libs/SafeTransfer.sol";
 import "./interfaces/IERC3156FlashBorrower.sol";
+import "./interfaces/IERC20Stakeable.sol";
 
 
-contract StakingToken is MintableToken {
+
+contract StakingToken is MintableToken, IERC20Stakeable {
     using SafeMath for uint;
     using SafeTransfer for address;
 
@@ -40,7 +42,7 @@ contract StakingToken is MintableToken {
         return IERC20(token).balanceOf(address(this));
     }
 
-    function stake(address from) external lock returns(uint staked){
+    function stake(address from) external lock returns(uint staked) {
         // before staking, staker should transfer token to this contract
         uint balance = _stakedBalance();
         uint amount = balance.sub(reserved);

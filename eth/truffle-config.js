@@ -11,5 +11,8 @@ module.exports = {
     solc: {
       version: "0.8.17"
     }
-  }
+  },
+  plugins: [
+    'truffle-contract-size'
+  ]
 };
