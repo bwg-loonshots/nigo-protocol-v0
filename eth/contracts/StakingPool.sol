@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
-import "./StakableToken.sol";
+import "./StakingToken.sol";
 import "./libs/SafeTransfer.sol";
 import "./interfaces/IERC3156FlashLender.sol";
 
@@ -12,15 +12,18 @@ contract StakingPool is IERC3156FlashLender{
     // real token => stToken(a.k.a stToken)
     mapping(address => address) public tokens;
 
+    mapping(address => bool) public isStToken;
+    
     function stake(address token, uint amount) external returns(address stToken, uint staked) {
 
         if(tokens[token] == address(0)) {
-            tokens[token] = address(new StakableToken(token));
+            tokens[token] = address(new StakingToken(token));
+            isStToken[tokens[token]] = true;
         }
 
         token._transferFrom(msg.sender, tokens[token], amount);
 
-        staked = StakableToken(tokens[token]).stake(msg.sender);
+        staked = StakingToken(tokens[token]).stake(msg.sender);
 
         stToken = tokens[token];
 
@@ -28,21 +31,29 @@ contract StakingPool is IERC3156FlashLender{
 
     function unstake(address token, uint staked) external returns(uint amount) {
 
-        amount = StakableToken(tokens[token]).unstake(msg.sender, staked);
+        amount = StakingToken(tokens[token]).unstake(msg.sender, staked);
         
     }
 
     function maxFlashLoan(address token) external view returns (uint256){
 
+        if(isStToken[token]) {
+            return type(uint256).max - StakingToken(token).totalSupply();
+        }
+
         require(tokens[token] != address(0), "nigo: unsupported token");
-        return StakableToken(tokens[token]).reserved();
+        return StakingToken(tokens[token]).reserved();
         
     }
 
     function flashFee(address token, uint256 amount) external view returns (uint256) {
 
+        if(isStToken[token]) {
+            return StakingToken(token).flashFee(amount);
+        }
+
         require(tokens[token] != address(0), "nigo: unsupported token");
-        return StakableToken(tokens[token]).flashFee(amount);
+        return StakingToken(tokens[token]).flashFee(amount);
 
     }
 
@@ -53,8 +64,12 @@ contract StakingPool is IERC3156FlashLender{
         bytes calldata data
     ) external returns (bool) {
 
+        if(isStToken[token]) {
+            return StakingToken(token).flashMint(receiver, amount, data);
+        }
+
         require(tokens[token] != address(0), "nigo: unsupported token");
-        return StakableToken(tokens[token]).flashLoan(receiver, amount, data);
+        return StakingToken(tokens[token]).flashLoan(receiver, amount, data);
 
     }
     

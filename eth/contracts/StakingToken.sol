@@ -6,9 +6,11 @@ import "./libs/SafeTransfer.sol";
 import "./interfaces/IERC3156FlashBorrower.sol";
 
 
-contract StakableToken is MintableToken {
+contract StakingToken is MintableToken {
     using SafeMath for uint;
     using SafeTransfer for address;
+
+    bytes32 constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     address public token;
 
@@ -18,8 +20,8 @@ contract StakableToken is MintableToken {
 
     constructor(address _token)
     MintableToken(
-        string(abi.encodePacked("Nigo Staked ", StakableToken(token).name())),
-        string(abi.encodePacked("st", StakableToken(token).symbol()))) {
+        string(abi.encodePacked("Nigo Staked ", IERC20(token).name())),
+        string(abi.encodePacked("st", IERC20(token).symbol()))) {
         token = _token;
     }
 
@@ -90,7 +92,7 @@ contract StakableToken is MintableToken {
 
         require(
             receiver.onFlashLoan(address(receiver), token, amount, _fee, data)
-            == keccak256("ERC3156FlashBorrower.onFlashLoan"),
+            == CALLBACK_SUCCESS,
             "nigo: IERC3156 callback failed");
 
         require(
@@ -117,7 +119,7 @@ contract StakableToken is MintableToken {
 
         require(
             receiver.onFlashLoan(address(receiver), token, amount, _fee, data)
-            == keccak256("ERC3156FlashBorrower.onFlashLoan"),
+            == CALLBACK_SUCCESS,
             "nigo: IERC3156 callback failed");
         
         uint repay = amount.add(_fee);
