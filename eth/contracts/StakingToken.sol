@@ -64,6 +64,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
     function unstake(address from, uint staked) external lock returns(uint amount) {
         
         uint balance = _stakedBalance();
+        
         amount = balance.mul(staked) / totalSupply;
 
         _burn(from, staked);

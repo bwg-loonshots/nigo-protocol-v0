@@ -2,10 +2,11 @@
 pragma solidity >=0.8.0;
 
 import "./MintableToken.sol";
+import "./interfaces/IERC20PairStakeable.sol";
 import "./libs/SafeMath.sol";
 import "./libs/SafeTransfer.sol";
 
-contract StakingTokenPair is MintableToken{
+contract StakingTokenPair is MintableToken, IERC20PairStakeable {
     using SafeMath for uint;
     using SafeTransfer for address;
 
@@ -60,10 +61,10 @@ contract StakingTokenPair is MintableToken{
 
     }
 
-    function unstake(address from, uint256 liquidity) external {
+    function unstake(address from, uint256 liquidity) external returns(uint amountA, uint amountB) {
 
-        uint256 amountA = _stakedBalance(tokenA).mul(liquidity) / totalSupply;
-        uint256 amountB = _stakedBalance(tokenB).mul(liquidity) / totalSupply;
+        amountA = _stakedBalance(tokenA).mul(liquidity) / totalSupply;
+        amountB = _stakedBalance(tokenB).mul(liquidity) / totalSupply;
 
         _burn(from, liquidity);
 

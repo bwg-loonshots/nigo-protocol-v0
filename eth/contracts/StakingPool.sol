@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
-import "./interfaces/IRecipe.sol";
+import "./interfaces/ITokenRecipe.sol";
+import "./interfaces/ITokenPairRecipe.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC3156FlashLender.sol";
 import "./libs/SafeMath.sol";
@@ -11,21 +12,25 @@ contract StakingPool is IERC3156FlashLender{
     using SafeMath for uint;
     using SafeTransfer for address;
 
-    IRecipe recipe;
+    // factory contracts
+    ITokenRecipe tokenRecipe;
+    ITokenPairRecipe tokenPairRecipe;
 
     // real token => stToken(a.k.a stToken)
     mapping(address => address) public tokens;
 
+    // for checking token is staked
     mapping(address => bool) public isStToken;
 
-    constructor(address _recipe) {
-        recipe = IRecipe(_recipe);
+    constructor(address _tokenRecipe, address _tokenPairRecipe) {
+        tokenRecipe = ITokenRecipe(_tokenRecipe);
+        tokenPairRecipe = ITokenPairRecipe(_tokenPairRecipe);
     }
-    
-    function stake(address token, uint amount) external returns(address stToken, uint staked) {
+
+    function _stake(address token, uint amount) private returns(address stToken, uint staked) {
 
         if(tokens[token] == address(0)) {
-            tokens[token] = address(recipe.newStakingToken(token));
+            tokens[token] = address(tokenRecipe.newStakingToken(token));
             isStToken[tokens[token]] = true;
         }
 
@@ -36,11 +41,17 @@ contract StakingPool is IERC3156FlashLender{
         stToken = tokens[token];
 
     }
+    
+    function stake(address token, uint amount) external returns(address stToken, uint staked) {
+        return _stake(token, amount);
+    }
+
+    function _unstake(address token, uint staked) private returns(uint amount) {
+        amount = IERC20Stakeable(tokens[token]).unstake(msg.sender, staked);
+    }
 
     function unstake(address token, uint staked) external returns(uint amount) {
-
-        amount = IERC20Stakeable(tokens[token]).unstake(msg.sender, staked);
-        
+        return _unstake(token, staked);
     }
 
     function maxFlashLoan(address token) external view returns (uint256){
@@ -61,6 +72,7 @@ contract StakingPool is IERC3156FlashLender{
         }
 
         require(tokens[token] != address(0), "nigo: unsupported token");
+        
         return IERC20Stakeable(tokens[token]).flashFee(amount);
 
     }
