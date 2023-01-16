@@ -61,15 +61,18 @@ contract StakingToken is MintableToken, IERC20Stakeable {
 
     }
 
-    function unstake(address from, uint staked) external lock returns(uint amount) {
-        
+    // TODO if another one transfered st token to contract before unstake?
+    function unstake(address from) external lock returns(uint amount) {
+
+        uint staked = balances[address(this)];
+
+        _burn(address(this), staked);
+
         uint balance = _stakedBalance();
         
         amount = balance.mul(staked) / totalSupply;
 
-        _burn(from, staked);
-
-        token._transfer( from, amount);
+        token._transfer(from, amount);
 
         reserved = balance;
 

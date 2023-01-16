@@ -61,7 +61,10 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
 
     }
 
-    function unstake(address from, uint256 liquidity) external returns(uint amountA, uint amountB) {
+    // TODO if another one transfered st token to contract before unstake?
+    function unstake(address from) external returns(uint amountA, uint amountB) {
+
+        uint liquidity = balances[address(this)];
 
         amountA = _stakedBalance(tokenA).mul(liquidity) / totalSupply;
         amountB = _stakedBalance(tokenB).mul(liquidity) / totalSupply;
@@ -78,15 +81,13 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
     function swap(
         address tokenIn, 
         address to
-        ) external returns(
-            uint256 amountIn,
-            uint256 amountOut) {
+        ) external returns(uint256 amountOut) {
 
         (address tokenOut, uint256 reservedIn, uint256 reservedOut) = 
             tokenIn == tokenA ? 
             (tokenB, reservedA, reservedB) : (tokenA, reservedB, reservedA);
 
-        amountIn = _stakedBalance(tokenIn).sub(reservedIn);
+        uint amountIn = _stakedBalance(tokenIn).sub(reservedIn);
 
         uint256 amountInWithFee = amountIn.mul(10000).sub(fee);
         uint256 numerator = amountInWithFee.mul(reservedOut);

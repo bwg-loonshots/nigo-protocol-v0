@@ -5,7 +5,7 @@ interface IERC20PairStakeable {
 
     function stake(address from) external returns(uint liquidity);
 
-    function unstake(address from, uint256 liquidity) external returns(uint amountA, uint amountB);
+    function unstake(address from) external returns(uint amountA, uint amountB);
 
-    function swap(address tokenIn, address to) external returns(uint256 amountIn,uint256 amountOut);
+    function swap(address tokenIn, address to) external returns(uint256 amountOut);
 }
