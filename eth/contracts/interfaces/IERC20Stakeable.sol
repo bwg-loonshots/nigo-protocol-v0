@@ -11,7 +11,7 @@ interface IERC20Stakeable {
 
     function stake(address from) external returns(uint staked);
 
-    function unstake(address from, uint staked) external returns(uint amount);
+    function unstake(address from) external returns(uint amount);
 
     function flashFee(uint amount) external view returns(uint256);
 
