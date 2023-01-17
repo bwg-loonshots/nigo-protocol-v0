@@ -22,9 +22,9 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
 
     constructor(address _tokenA, address _tokenB) 
     MintableToken(
-        string(abi.encodePacked(IERC20(tokenA).symbol(), "-", IERC20(tokenB).symbol()))
+        string(abi.encodePacked(IERC20(_tokenA).symbol(), "-", IERC20(_tokenB).symbol()))
         , "NGLP") {
-        (tokenA, tokenB) = _tokenA < _tokenB ? (_tokenA, _tokenB) : (_tokenB, _tokenA);
+        (tokenA, tokenB) = (_tokenA, _tokenB); 
     }
 
     function getReserves() public view returns(uint256, uint256) {
@@ -44,7 +44,7 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
         k = reservedA * reservedB;
     }
 
-    function stake(address from) external returns(uint liquidity) {
+    function stake(address from) external override returns(uint liquidity) {
 
         uint amountA = _stakedBalance(tokenA).sub(reservedA);
         uint amountB = _stakedBalance(tokenB).sub(reservedB);
@@ -62,17 +62,17 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
     }
 
     // TODO if another one transfered st token to contract before unstake?
-    function unstake(address from) external returns(uint amountA, uint amountB) {
+    function unstake(address from) external override returns(uint amountA, uint amountB) {
 
         uint liquidity = balances[address(this)];
 
         amountA = _stakedBalance(tokenA).mul(liquidity) / totalSupply;
         amountB = _stakedBalance(tokenB).mul(liquidity) / totalSupply;
 
-        _burn(from, liquidity);
+        _burn(address(this), liquidity);
 
-        tokenA._transfer(msg.sender, amountA);
-        tokenB._transfer(msg.sender, amountB);
+        tokenA._transfer(from, amountA);
+        tokenB._transfer(from, amountB);
 
         sync();
 
@@ -81,7 +81,7 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
     function swap(
         address tokenIn, 
         address to
-        ) external returns(uint256 amountOut) {
+        ) external override returns(uint256 amountOut) {
 
         (address tokenOut, uint256 reservedIn, uint256 reservedOut) = 
             tokenIn == tokenA ? 
@@ -89,9 +89,10 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
 
         uint amountIn = _stakedBalance(tokenIn).sub(reservedIn);
 
-        uint256 amountInWithFee = amountIn.mul(10000).sub(fee);
+        uint256 amountInWithFee = amountIn.mul(10000 - fee);
         uint256 numerator = amountInWithFee.mul(reservedOut);
         uint256 denominator = reservedIn.mul(10000).add(amountInWithFee);
+
         amountOut = numerator / denominator;
 
         tokenOut._transfer(to, amountOut);

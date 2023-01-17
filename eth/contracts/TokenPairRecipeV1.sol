@@ -6,7 +6,7 @@ import "./StakingTokenPair.sol";
 
 contract TokenPairRecipeV1 is ITokenPairRecipe {
 
-    function newStakingTokenPair(address tokenA, address tokenB) external returns(IERC20PairStakeable) {
+    function newStakingTokenPair(address tokenA, address tokenB) external override returns(IERC20PairStakeable) {
         return new StakingTokenPair(tokenA, tokenB);
     }
 

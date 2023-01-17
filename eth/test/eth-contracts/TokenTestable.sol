@@ -5,7 +5,7 @@ import "../../contracts/ERC20.sol";
 
 contract TokenTestable {
     
-    uint internal constant DEX18 = 18 ** 10;
+    uint internal constant DEX18 = 10 ** 18;
 
     function newToken(string memory symbol, uint totalSupply) internal returns(ERC20) {
         return new ERC20(
