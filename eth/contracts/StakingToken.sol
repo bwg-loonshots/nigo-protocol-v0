@@ -18,12 +18,12 @@ contract StakingToken is MintableToken, IERC20Stakeable {
 
     uint public override reserved;
 
-    uint public fee = 30; // 1 == 0.01%, 0.3 default
+    uint public fee = 30; // 1 == 0.01%, 0.3% default
 
     constructor(address _token)
     MintableToken(
-        string(abi.encodePacked("Nigo Staked ", IERC20(token).name())),
-        string(abi.encodePacked("st", IERC20(token).symbol()))) {
+        string(abi.encodePacked("Nigo Staked ", IERC20(_token).name())),
+        string(abi.encodePacked("st", IERC20(_token).symbol()))) {
         token = _token;
     }
 
@@ -66,15 +66,15 @@ contract StakingToken is MintableToken, IERC20Stakeable {
 
         uint staked = balances[address(this)];
 
-        _burn(address(this), staked);
-
         uint balance = _stakedBalance();
         
         amount = balance.mul(staked) / totalSupply;
 
+        _burn(address(this), staked);
+
         token._transfer(from, amount);
 
-        reserved = balance;
+        reserved = _stakedBalance();
 
     }
 
@@ -124,7 +124,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
         uint _fee = _flashFee(amount);
 
         require(
-            receiver.onFlashLoan(address(receiver), token, amount, _fee, data)
+            receiver.onFlashLoan(address(receiver), address(this), amount, _fee, data)
             == CALLBACK_SUCCESS,
             "nigo: IERC3156 callback failed");
         
@@ -132,7 +132,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
         uint _allowed = allowed[address(receiver)][address(this)];
 
         require(
-            _allowed > repay,
+            _allowed >= repay,
             "nigo: repay not approved");
 
         allowed[address(receiver)][address(this)] = _allowed - repay;

@@ -75,7 +75,7 @@ contract StakingPool is IERC3156FlashLender{
         return _unstake(msg.sender, token, staked, msg.sender);
     }
 
-    function maxFlashLoan(address token) external view returns (uint256){
+    function maxFlashLoan(address token) external override view returns (uint256){
 
         if(isStToken[token]) {
             return type(uint256).max - IERC20(token).totalSupply();
@@ -86,7 +86,7 @@ contract StakingPool is IERC3156FlashLender{
         
     }
 
-    function flashFee(address token, uint256 amount) external view returns (uint256) {
+    function flashFee(address token, uint256 amount) external override view returns (uint256) {
 
         if(isStToken[token]) {
             return IERC20Stakeable(token).flashFee(amount);
@@ -103,7 +103,7 @@ contract StakingPool is IERC3156FlashLender{
         address token,
         uint256 amount,
         bytes calldata data
-    ) external returns (bool) {
+    ) external override returns (bool) {
 
         if(isStToken[token]) {
             return IERC20Stakeable(token).flashMint(receiver, amount, data);
@@ -177,7 +177,7 @@ contract StakingPool is IERC3156FlashLender{
         address pair = pairs[tokenA][tokenB];
         require(pair != address(0), "nigo: not supported pair"); 
 
-        tokenA._transferFrom(from, pair, amountIn); 
+        tokenIn._transferFrom(from, pair, amountIn); 
         amountOut = IERC20PairStakeable(pair).swap(tokenIn, to);
 
     }

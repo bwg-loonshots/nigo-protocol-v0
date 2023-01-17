@@ -2,6 +2,8 @@
 pragma solidity >=0.8.0;
 
 import "./TokenTestable.sol";
+import "./TokenHolder.sol";
+
 contract ERC20_test is TokenTestable {
 
     
@@ -26,8 +28,6 @@ contract ERC20_test is TokenTestable {
 
         assert(token.balanceOf(address(holder)) == 0);
         assert(token.balanceOf(address(this)) == totalSupply);
-
-        emit Success();
 
     }
 }
