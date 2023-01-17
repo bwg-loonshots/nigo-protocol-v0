@@ -14,9 +14,9 @@ contract StakingToken is MintableToken, IERC20Stakeable {
 
     bytes32 constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
-    address public token;
+    address public override token;
 
-    uint public reserved;
+    uint public override reserved;
 
     uint public fee = 30; // 1 == 0.01%, 0.3 default
 
@@ -42,7 +42,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
         return IERC20(token).balanceOf(address(this));
     }
 
-    function stake(address from) external lock returns(uint staked) {
+    function stake(address from) external override lock returns(uint staked) {
         // before staking, staker should transfer token to this contract
         uint balance = _stakedBalance();
         uint amount = balance.sub(reserved);
@@ -62,7 +62,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
     }
 
     // TODO if another one transfered st token to contract before unstake?
-    function unstake(address from) external lock returns(uint amount) {
+    function unstake(address from) external override lock returns(uint amount) {
 
         uint staked = balances[address(this)];
 
@@ -82,7 +82,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
         return amount.mul(fee) / 10000;
     }
 
-    function flashFee(uint amount) external view returns(uint256) {
+    function flashFee(uint amount) external override view returns(uint256) {
         return _flashFee(amount);
     }
 
@@ -90,7 +90,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
         IERC3156FlashBorrower receiver,
         uint amount,
         bytes calldata data
-    ) external lock returns(bool) {
+    ) external override lock returns(bool) {
 
         token._transfer(address(receiver), amount);
 
@@ -117,7 +117,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
         IERC3156FlashBorrower receiver,
         uint amount,
         bytes calldata data
-    ) external lock returns(bool) {
+    ) external override lock returns(bool) {
 
         _mint(address(receiver), amount);
 
