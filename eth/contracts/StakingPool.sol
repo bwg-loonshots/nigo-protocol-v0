@@ -66,6 +66,7 @@ contract StakingPool is IERC3156FlashLender{
 
         require(isStToken[token], "not statked token");
         
+        IERC20Stakeable(token).approveFrom(from, address(this), amount);
         token._transferFrom(from, token, amount);
         unstaked = IERC20Stakeable(token).unstake(to);
 

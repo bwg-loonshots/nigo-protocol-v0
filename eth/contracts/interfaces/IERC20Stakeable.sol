@@ -9,6 +9,12 @@ interface IERC20Stakeable {
 
     function reserved() external view returns(uint);
 
+    function approveFrom(
+        address owner, 
+        address spender, 
+        uint amount
+        ) external returns(bool);
+
     function stake(address from) external returns(uint staked);
 
     function unstake(address from) external returns(uint amount);

@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.8.0;
+
+import "./TokenTestable.sol";
+import "../../contracts/StakingToken.sol";
+
+contract StakingToken_test_stake_unstake is TokenTestable {
+    
+    uint origin_token_balance;
+
+    StakingToken stToken;
+
+    function test() public {
+
+        ERC20 token = newToken("T01", 100_000_000 * DEX18);
+
+        stToken = new StakingToken(address(token));
+
+        assert(stToken.token() == address(token));
+        assert(stToken.totalSupply() == 0);
+
+        // staking test
+        token.transfer(address(stToken), 1000_000);
+        stToken.stake(address(this));
+        assert(stToken.totalSupply() == 1000_000);
+        assert(stToken.reserved() == 1000_000);
+        assert(token.balanceOf(address(stToken)) == 1000_000);
+        assert(stToken.balanceOf(address(this)) == 1000_000);
+
+        // unstake test
+        stToken.transfer(address(stToken), 1000_000);
+        stToken.unstake(address(this));
+        assert(stToken.totalSupply() == 0);
+        assert(stToken.balanceOf(address(this)) == 0);
+        assert(token.balanceOf(address(this)) == 100_000_000 * DEX18);
+
+    }
+
+}

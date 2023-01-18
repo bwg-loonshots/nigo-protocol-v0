@@ -32,12 +32,20 @@ contract ERC20 is IERC20{
 
     }
 
-    function transfer(address to, uint256 value) external override returns(bool success) {
-        
-        balances[msg.sender] = balances[msg.sender].sub(value);
+    function _transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) internal returns(bool success) {
+        balances[from] = balances[from].sub(value);
         balances[to] = balances[to].add(value);
-        emit Transfer(msg.sender, to, value);
+        emit Transfer(from, to, value);
         return true;
+    }
+
+    function transfer(address to, uint256 value) external override returns(bool) {
+        
+        return _transferFrom(msg.sender, to, value);
 
     }
 
@@ -45,31 +53,34 @@ contract ERC20 is IERC20{
         address from, 
         address to, 
         uint256 value
-        ) external override returns (bool success) {
+        ) external override returns (bool) {
 
         allowed[from][msg.sender] = allowed[from][msg.sender].sub(value);
-        balances[to] = balances[to].add(value);
-        balances[from] = balances[from].sub(value);
-        emit Transfer(from, to, value);
-        return true;
-
+        return _transferFrom(from, to, value);
     }
 
-    function balanceOf(address _owner) external override view returns(uint balance) {
+    function balanceOf(address _owner) external override view returns(uint) {
 
         return balances[_owner];
 
     }
 
-    function approve(address _spender, uint _value) external override returns(bool success) {
-
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        return true;
-
+    function _approve(
+        address owner,
+        address _spender,
+        uint _value
+    ) internal returns(bool) {
+        allowed[owner][_spender] = _value;
+        emit Approval(owner, _spender, _value); 
+        return true;     
     }
 
-    function allowance(address _owner, address _spender) external override view returns(uint256 remaining) {
+    function approve(address _spender, uint _value) external override returns(bool) {
+
+        return _approve(msg.sender, _spender, _value);   
+    }
+
+    function allowance(address _owner, address _spender) external override view returns(uint256) {
 
         return allowed[_owner][_spender];
 

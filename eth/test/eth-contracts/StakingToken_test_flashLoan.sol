@@ -15,19 +15,9 @@ contract StakingToken_test_flashLoan is TokenTestable, IERC3156FlashBorrower {
     function test() public {
 
         ERC20 token = newToken("T01", 100_000_000 * DEX18);
-
         stToken = new StakingToken(address(token));
-
-        assert(stToken.token() == address(token));
-        assert(stToken.totalSupply() == 0);
-
-        // staking test
         token.transfer(address(stToken), 1000_000);
         stToken.stake(address(this));
-        assert(stToken.totalSupply() == 1000_000);
-        assert(stToken.reserved() == 1000_000);
-        assert(token.balanceOf(address(stToken)) == 1000_000);
-        assert(stToken.balanceOf(address(this)) == 1000_000);
 
         // flash loan test
         origin_token_balance = token.balanceOf(address(this));

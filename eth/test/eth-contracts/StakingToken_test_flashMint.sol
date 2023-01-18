@@ -17,18 +17,9 @@ contract StakingToken_testFlashMint is TokenTestable, IERC3156FlashBorrower {
         ERC20 token = newToken("T01", 100_000_000 * DEX18);
 
         stToken = new StakingToken(address(token));
-
-        assert(stToken.token() == address(token));
-        assert(stToken.totalSupply() == 0);
-
         token.transfer(address(stToken), 1000_000);
-
-        // staking test
         stToken.stake(address(this));
-        assert(stToken.totalSupply() == 1000_000);
-        assert(stToken.reserved() == 1000_000);
-        assert(token.balanceOf(address(stToken)) == 1000_000);
-        assert(stToken.balanceOf(address(this)) == 1000_000);
+
 
         // flash mint test
         staked_token_balance = stToken.balanceOf(address(this));
