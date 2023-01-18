@@ -17,13 +17,17 @@ contract StakingPool is IERC3156FlashLender{
     address tokenPairRecipe;
 
     // real token => stToken(a.k.a stToken)
-    mapping(address => address) public tokens;
+    mapping(address => address) public stakedOf;
+
+    address[] public tokens;
 
     // for checking token is staked
     mapping(address => bool) public isStToken;
 
     // tokan A => token B => tokenPair
-    mapping(address => mapping(address => address)) public pairs;
+    mapping(address => mapping(address => address)) public pairOf;
+
+    address[] public pairs;
 
     // for checking token is staked pair
     mapping(address => bool) public isPair;
@@ -56,16 +60,17 @@ contract StakingPool is IERC3156FlashLender{
         address owner
         ) private returns(address) {
 
-        if(tokens[token] == address(0)) {
-            tokens[token] = newStakingToken(token);
-            isStToken[tokens[token]] = true;
+        if(stakedOf[token] == address(0)) {
+            stakedOf[token] = newStakingToken(token);
+            isStToken[stakedOf[token]] = true;
+            tokens.push(token);
         }
 
-        token._transferFrom(from, tokens[token], amount);
+        token._transferFrom(from, stakedOf[token], amount);
 
-        IERC20Stakeable(tokens[token]).stake(owner);
+        IERC20Stakeable(stakedOf[token]).stake(owner);
 
-        return tokens[token];
+        return stakedOf[token];
 
     }
     
@@ -98,8 +103,8 @@ contract StakingPool is IERC3156FlashLender{
             return type(uint256).max - IERC20(token).totalSupply();
         }
 
-        require(tokens[token] != address(0), "nigo: unsupported token");
-        return IERC20Stakeable(tokens[token]).reserved();
+        require(stakedOf[token] != address(0), "nigo: unsupported token");
+        return IERC20Stakeable(stakedOf[token]).reserved();
         
     }
 
@@ -109,9 +114,9 @@ contract StakingPool is IERC3156FlashLender{
             return IERC20Stakeable(token).flashFee(amount);
         }
 
-        require(tokens[token] != address(0), "nigo: unsupported token");
+        require(stakedOf[token] != address(0), "nigo: unsupported token");
         
-        return IERC20Stakeable(tokens[token]).flashFee(amount);
+        return IERC20Stakeable(stakedOf[token]).flashFee(amount);
 
     }
 
@@ -126,8 +131,8 @@ contract StakingPool is IERC3156FlashLender{
             return IERC20Stakeable(token).flashMint(receiver, amount, data);
         }
 
-        require(tokens[token] != address(0), "nigo: unsupported token");
-        return IERC20Stakeable(tokens[token]).flashLoan(receiver, amount, data);
+        require(stakedOf[token] != address(0), "nigo: unsupported token");
+        return IERC20Stakeable(stakedOf[token]).flashLoan(receiver, amount, data);
 
     }
 
@@ -150,13 +155,14 @@ contract StakingPool is IERC3156FlashLender{
             (_tokenA, _tokenB, _amountA, _amountB) : 
             (_tokenB, _tokenA, _amountB, _amountA);
 
-        pair = pairs[tokenA][tokenB];
+        pair = pairOf[tokenA][tokenB];
 
         if(pair == address(0)) {
             require(tokenA != tokenB, "nigo: identical addresses");
             pair = newStakingTokenPair(tokenA, tokenB);
-            pairs[tokenA][tokenB] = pair;
+            pairOf[tokenA][tokenB] = pair;
             isPair[pair] = true;
+            pairs.push(pair);
         }
 
         tokenA._transferFrom(from, pair, amountA);
@@ -175,7 +181,7 @@ contract StakingPool is IERC3156FlashLender{
     ) internal returns(uint amountA, uint amountB) {
 
         (address tokenA, address tokenB) = tokenOrder(_tokenA, _tokenB);
-        address pair = pairs[tokenA][tokenB];
+        address pair = pairOf[tokenA][tokenB];
         require(pair != address(0), "nigo: not supported pair");
         IERC20PairStakeable(pair).approveFrom(from, address(this), liquidity);
         pair._transferFrom(from, pair, liquidity);
@@ -192,7 +198,7 @@ contract StakingPool is IERC3156FlashLender{
     ) internal returns(uint amountOut) {
 
         (address tokenA, address tokenB) = tokenOrder(tokenIn, tokenOut);
-        address pair = pairs[tokenA][tokenB];
+        address pair = pairOf[tokenA][tokenB];
         require(pair != address(0), "nigo: not supported pair"); 
 
         tokenIn._transferFrom(from, pair, amountIn); 
