@@ -10,6 +10,8 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
     using SafeMath for uint;
     using SafeTransfer for address;
 
+    address public creator;
+
     address public tokenA;
     address public tokenB;
 
@@ -24,7 +26,8 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
     MintableToken(
         string(abi.encodePacked(IERC20(_tokenA).symbol(), "-", IERC20(_tokenB).symbol()))
         , "NGLP") {
-        (tokenA, tokenB) = (_tokenA, _tokenB); 
+        (tokenA, tokenB) = (_tokenA, _tokenB);
+        creator = msg.sender;
     }
 
     function getReserves() public view returns(uint256, uint256) {
@@ -42,6 +45,16 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
     function sync() private {
         (reservedA, reservedB) = _stakedBalances();
         k = reservedA * reservedB;
+    }
+
+    function approveFrom(
+        address owner, 
+        address spender, 
+        uint amount)
+        external override returns(bool) {
+
+        require(msg.sender == creator, "nigo: forbidden");
+        return _approve(owner, spender, amount);
     }
 
     function stake(address from) external override returns(uint liquidity) {

@@ -8,4 +8,11 @@ interface IERC20PairStakeable {
     function unstake(address from) external returns(uint amountA, uint amountB);
 
     function swap(address tokenIn, address to) external returns(uint256 amountOut);
+
+    function approveFrom(
+        address owner, 
+        address spender, 
+        uint amount
+        ) external returns(bool);
+        
 }

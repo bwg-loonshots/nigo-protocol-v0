@@ -13,8 +13,8 @@ contract StakingPool is IERC3156FlashLender{
     using SafeTransfer for address;
 
     // factory contracts
-    ITokenRecipe tokenRecipe;
-    ITokenPairRecipe tokenPairRecipe;
+    address tokenRecipe;
+    address tokenPairRecipe;
 
     // real token => stToken(a.k.a stToken)
     mapping(address => address) public tokens;
@@ -29,8 +29,24 @@ contract StakingPool is IERC3156FlashLender{
     mapping(address => bool) public isPair;
 
     constructor(address _tokenRecipe, address _tokenPairRecipe) {
-        tokenRecipe = ITokenRecipe(_tokenRecipe);
-        tokenPairRecipe = ITokenPairRecipe(_tokenPairRecipe);
+        tokenRecipe = _tokenRecipe;
+        tokenPairRecipe = _tokenPairRecipe;
+    }
+
+    function newStakingToken(address token) private returns(address stToken){
+        (bool success, bytes memory data) = tokenRecipe.delegatecall(
+            abi.encodeWithSignature("newStakingToken(address)", token)
+        );
+        require(success, "nigo: staking token creation failed");
+        stToken = address(abi.decode(data, (IERC20Stakeable)));
+    }
+
+    function newStakingTokenPair(address tokenA, address tokenB) private returns(address pair){
+        (bool success, bytes memory data) = tokenPairRecipe.delegatecall(
+            abi.encodeWithSignature("newStakingTokenPair(address,address)", tokenA, tokenB)
+        );
+        require(success, "nigo: staking token creation failed");
+        pair = address(abi.decode(data, (IERC20PairStakeable)));
     }
 
     function _stake(
@@ -41,7 +57,7 @@ contract StakingPool is IERC3156FlashLender{
         ) private returns(address) {
 
         if(tokens[token] == address(0)) {
-            tokens[token] = address(tokenRecipe.newStakingToken(token));
+            tokens[token] = newStakingToken(token);
             isStToken[tokens[token]] = true;
         }
 
@@ -138,7 +154,7 @@ contract StakingPool is IERC3156FlashLender{
 
         if(pair == address(0)) {
             require(tokenA != tokenB, "nigo: identical addresses");
-            pair = address(tokenPairRecipe.newStakingTokenPair(tokenA, tokenB));
+            pair = newStakingTokenPair(tokenA, tokenB);
             pairs[tokenA][tokenB] = pair;
             isPair[pair] = true;
         }
@@ -161,6 +177,7 @@ contract StakingPool is IERC3156FlashLender{
         (address tokenA, address tokenB) = tokenOrder(_tokenA, _tokenB);
         address pair = pairs[tokenA][tokenB];
         require(pair != address(0), "nigo: not supported pair");
+        IERC20PairStakeable(pair).approveFrom(from, address(this), liquidity);
         pair._transferFrom(from, pair, liquidity);
         (amountA, amountB) = IERC20PairStakeable(pair).unstake(to);
 
@@ -189,6 +206,15 @@ contract StakingPool is IERC3156FlashLender{
         uint amountA,
         uint amountB
     ) external returns(address pair, uint liquidity) {
+
+        if(isStToken[tokenA]) {
+            IERC20Stakeable(tokenA).approveFrom(msg.sender, address(this), amountA);
+        }
+
+        if(isStToken[tokenB]) {
+            IERC20Stakeable(tokenB).approveFrom(msg.sender, address(this), amountB);
+        }
+
         return _addPairLiquidity(
             msg.sender,
             tokenA, 
@@ -216,6 +242,11 @@ contract StakingPool is IERC3156FlashLender{
         address tokenOut,
         uint amountIn
     ) external returns(uint amountOut) {
+
+        if(isStToken[tokenIn]) {
+            IERC20Stakeable(tokenIn).approveFrom(msg.sender, address(this), amountIn);
+        }
+
         return _swap(
             msg.sender, 
             tokenIn, 
