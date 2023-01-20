@@ -1,0 +1,112 @@
+#modal.modal-overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index:10;
+    background: rgba(0, 0, 0, 0.7);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(1.5px);
+    -webkit-backdrop-filter: blur(1.5px);
+/*     border: 1px solid rgba(255, 255, 255, 0.18); */
+}
+#modal .modal-window {
+    background: gray;
+    box-shadow: 0 8px 32px 0 rgba( 31, 38, 135, 0.37 );
+    backdrop-filter: blur( 13.5px );
+    -webkit-backdrop-filter: blur( 13.5px );
+    border-radius: 10px;
+    border: 1px solid rgba( 255, 255, 255, 0.18 );
+    width: 400px;
+    height: 500px;
+    position: relative;
+    top: -100px;
+    padding: 10px;
+}
+#modal .title {
+    padding-left: 10px;
+    display: inline;
+    text-shadow: 1px 1px 2px gray;
+    color: white;
+    
+}
+#modal .title h2 {
+    display: inline;
+}
+#modal .close-area {
+    display: inline;
+    float: right;
+    padding-right: 10px;
+    cursor: pointer;
+    text-shadow: 1px 1px 2px gray;
+    color: white;
+}
+
+#modal .content {
+    margin-top: 20px;
+    padding: 0px 10px;
+    text-shadow: 1px 1px 2px gray;
+    color: white;
+}
+
+#modal #filter_box {
+	border-style:none;
+	border-radius : 2em;
+	background-color: white;
+}
+
+#modal #filter_box:focus-within {
+	outline: 3px solid #113fc8;
+}
+
+#modal #filter {
+	margin-left: 0.5em;
+	border-style:none;
+	font-size: large;
+	outline-style: none;
+}
+
+#modal .token {
+	display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin-bottom: 1em;
+}
+
+#modal .token .tokenImg{
+	width:30px;
+}
+
+#modal .token .tokenImg img{
+	width:25px;
+	border-radius: 50%;
+}
+
+#modal .token .tokenInfo{
+	flex-grow: 3;
+}
+
+#modal .token .tokenInfo .tokenSymbol{
+	text-shadow: 1px 1px black;
+}
+
+#modal .token .tokenInfo .tokenName{
+	color: #BBBBBB;
+	font-size: smaller;
+}
+
+#modal .token .tokenBalance{
+	text-align:right;
+	flex-grow: 6;
+	font-size: large;
+}
+
+
+
+
+

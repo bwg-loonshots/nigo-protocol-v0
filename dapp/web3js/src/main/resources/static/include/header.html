@@ -1,0 +1,40 @@
+<style>
+	#name {
+		-moz-transition: opacity 0.2s ease;
+		-webkit-transition: opacity 0.2s ease;
+		-ms-transition: opacity 0.2s ease;
+		transition: opacity 0.2s ease;
+		height: inherit;
+		left: 1.25em;
+		line-height: inherit;
+		position: absolute;
+		top: 0;
+		font-size: xx-large;
+		font-family: fantasy;
+		color: #e8edfd;
+	}
+	#connect_block {
+		position: absolute; 
+		right: 1.25em;
+		top: 0;
+		cursor:pointer;
+	}
+	#connect {
+		margin:0.5em;
+		background-color:#e8edfd;
+		width:10em;
+		height: 2em;
+		line-height: 2em;
+		text-align: center;
+		font-family: fantasy;
+		border-radius: 2em;
+	}
+</style>
+
+<div>
+	<div id="name">Stake</div>
+	<div id="connect_block" onclick="connect()">
+		<div id="connect">ready</div>
+	</div>
+</div>
+

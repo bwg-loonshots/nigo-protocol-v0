@@ -12,36 +12,46 @@ public class HomeController {
 	
 	@GetMapping("/testCall")
 	public String testCall() {
-		return "testCall.html";
+		return "metamask/testCall.html";
 	}
 	
 	@GetMapping("/switch")
 	public String switchChain() {
-		return "switch.html";
+		return "metamask/switch.html";
 	}
 	
 	@GetMapping("/testTx")
 	public String testTx() {
-		return "testTx.html";
+		return "metamask/testTx.html";
 	}
 	
 	@GetMapping("/testPair")
 	public String testPair() {
-		return "testPair.html";
+		return "metamask/testPair.html";
 	}	
 	
 	@GetMapping("/web3js")
 	public String web3js() {
-		return "web3js.html";
+		return "metamask/web3js.html";
 	}	
 	
 	@GetMapping("/subscribe")
 	public String subscribe() {
-		return "subscribe.html";
+		return "metamask/subscribe.html";
 	}
 	
 	@GetMapping("/estimate")
 	public String estimate() {
-		return "estimate.html";
+		return "metamask/estimate.html";
+	}
+	
+	@GetMapping("/interSwap")
+	public String interSwap() {
+		return "interSwap.html";
+	}
+	
+	@GetMapping("/testProvider")
+	public String testProvider() {
+		return "testProvider.html";
 	}
 }

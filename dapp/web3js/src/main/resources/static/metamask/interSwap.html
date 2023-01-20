@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="../../js/tokenAbi.js"></script>
+<script src="../../js/pairAbi.js"></script>
+<script src="../../js/tool.js"></script>
+<title>interSwap</title>
+</head>
+<body>
+<h1>interSwap</h1>
+<div>address : <span id="address"></span></div>
+<h3>info</h3>
+<table border="1">	
+	<tr>
+		<th>token</th>
+		<th>pairAB</th>
+		<th>pairBC</th>
+		<th>pairS</th>
+	</tr>
+	<tr>
+		<td>tokenA</td>
+		<td>
+			<input id="A_pairAB"/><button onclick="approve('A','AB')">approve</button>
+		</td>
+		<td>
+			<input id="A_pairBC"/><button onclick="approve('A','BC')">approve</button>
+		</td>
+		<td>
+			<input id="A_pairS"/><button onclick="approve('A','S')">approve</button>
+		</td>
+	</tr>
+	<tr>
+		<td>tokenB</td>
+		<td>
+			<input id="B_pairAB"/><button onclick="approve('B','AB')">approve</button>
+		</td>
+		<td>
+			<input id="B_pairBC"/><button onclick="approve('B','BC')">approve</button>
+		</td>
+		<td>
+			<input id="B_pairS"/><button onclick="approve('B','S')">approve</button>
+		</td>
+	</tr>
+	<tr>
+		<td>tokenC</td>
+		<td>
+			<input id="C_pairAB"/><button onclick="approve('C','AB')">approve</button>
+		</td>
+		<td>
+			<input id="C_pairBC"/><button onclick="approve('C','BC')">approve</button>
+		</td>
+		<td>
+			<input id="C_pairS"/><button onclick="approve('C','S')">approve</button>
+		</td>
+	</tr>
+</table>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+let provider;
+
+let baseFee;
+let priorityM;
+
+let Contracts = {};
+let estimateTransfer
+let estimatePair
+const DEX9 = 10**9
+const DEX18 = 10**18
+const value = mul18('0.1').toString()
+const ADDR_BOOK = {
+	tokenA : '0x7BcbEe697f7A6a362b02A671923c568d4ddF3Cab',
+	tokenB : '0xE12d5180Bd953d9a62E5f3a8f7941Ca61e5588dc',
+	tokenC : '0xeF0BC3890184532fBB06380A6c459d5Efde44f5d',
+	pairAB : '0xeE06BdeCc3B192905D6563fEeA9aEdB12dF9c9C3',
+	pairBC : '0xF4777B8519fA60D147EdfccC003AD54F8EcFa4F3',
+	pairS : '0xf38F3D3c260455Eb9a97F7ff3a07EB26435BC69d'
+}
+
+function initContract(){
+	Contracts['tokenA'] = new web3.eth.Contract(tokenAbi,ADDR_BOOK['tokenA'])
+	Contracts['tokenB'] = new web3.eth.Contract(tokenAbi,ADDR_BOOK['tokenB'])
+	Contracts['tokenC'] = new web3.eth.Contract(tokenAbi,ADDR_BOOK['tokenC'])
+	Contracts['pairAB'] = new web3.eth.Contract(pairAbi,ADDR_BOOK['pairAB'])
+	Contracts['pairBC'] = new web3.eth.Contract(pairAbi,ADDR_BOOK['pairBC'])
+	
+	allowance('A','AB')
+	allowance('A','BC')
+	allowance('A','S')
+	allowance('B','AB')
+	allowance('B','BC')
+	allowance('B','S')
+	allowance('C','AB')
+	allowance('C','BC')
+	allowance('C','S')
+}
+
+async function allowance(token,pair){
+	let allowance = await Contracts['token'+token].methods.allowance(accountAddr,ADDR_BOOK['pair'+pair]).call()
+	document.getElementById(token+'_pair'+pair).value = allowance/DEX18
+}
+
+async function approve(token,pair){
+	const spender = ADDR_BOOK['pair'+pair]
+	const allowance = mul18(document.getElementById(token+'_pair'+pair).value).toString()
+	let rslt = await Contracts['token'+token].methods.approve(spender,allowance).send({from:accountAddr})
+}
+
+
+
+window.onload = async () => {
+	if(!window.ethereum){
+		document.getElementById('address').innerHTML = '메타마스크가 없습니다'
+		return
+	}
+	web3 = new Web3(window.ethereum)
+	try{
+		const address = await web3.eth.requestAccounts()
+		document.getElementById('address').innerHTML = accountAddr = address[0]
+		initContract()
+	}catch(e){
+		document.getElementById('address').innerHTML = 'fail to request account'
+		return
+	}	
+}
+</script>
+
+</body>
+</html>

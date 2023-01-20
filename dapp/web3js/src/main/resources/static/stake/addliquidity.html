@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="./../js/include.js"></script>
+<script src="./../js/tokenDatas.js"></script>
+<script src="../../js/tokenAbi.js"></script>
+<script src="../../js/pairAbi.js"></script>
+<script src="./../js/stakeAbi.js"></script>
+<link rel="stylesheet" type="text/css" href="../css/modal.css">
+<link rel="stylesheet" type="text/css" href="../css/addliquidity.css">
+<title>liquidity</title>
+</head>
+<body>
+<div id=page-wrapper>
+	<header data-include="../include/header.html"></header>
+	<div id="main-wrapper">
+		<div id="head">Add Liquidity</div>
+		<div id="from" class="token">
+			<input id="input" type="number" oninput="checkOpp('input')" value="0.0"/>
+			<div id=tokenIn>
+				<button id="symbol_in" class="searchToken" onclick="modalOn('in')">tokenList</button>
+				<div class="deposited_box">deposited : <span id="deposited_in">0</span></div>
+			</div>
+		</div>
+		<div id="equality">=</div>
+		<div id="to" class="token">
+			<input id="output" type="number" oninput="checkOpp('output')" value="0.0"/>
+			<div id=tokenOut>
+				<button id="symbol_out" class="searchToken" onclick="modalOn('out')">tokenList</button>
+				<div class="deposited_box">deposited : <span id="deposited_out">0</span></div>
+			</div>
+		</div>
+		<div id="empty"></div>
+		<div id="action" class="token disable" onclick="addLiquidity()">
+			<h1>Add Liquidity</h1>
+		</div>
+	</div>
+</div>
+
+
+<div id="modal" class="modal-overlay">
+    <div class="modal-window">
+        <div class="title">
+            <h2>Token List</h2>
+        </div>
+        <div class="close-area">X</div>
+        <div class="content">
+        	<div id="filter_box">
+        		<input id="filter" type="text"/>
+        	</div>
+        	<ul id="tokenListBox" style="overflow: scroll; height: 400px;">
+        	</ul>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+let token_in={};
+let token_out={};
+let pair={};
+let txOption;
+let target;
+const poolAddr = "0x94945D39a0db93b01fc108012778CEC79507f49b";
+const emptyAddr = "0x0000000000000000000000000000000000000000";
+let poolContract;
+const DEX18 = 10**18 
+const DEX9 = 10**9 
+
+async function connect(){
+	try{
+		const address = await web3.eth.requestAccounts()
+		accountAddr = address[0]
+		document.getElementById('connect').innerHTML = accountAddr.slice(0,7) + '...'
+		poolContract = new web3.eth.Contract(stakingPoolAbi,poolAddr)
+	}catch(e){
+		alert('fail to request account')
+		return
+	}
+}
+
+async function tokenList(){
+	document.getElementById('swapn').classList.remove('disable')
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('connect').innerHTML='connect wallet'
+	}else{
+		document.getElementById('connect').innerHTML='메타마스크가 없습니다'	
+	}
+}
+
+const modal = document.getElementById("modal")
+    
+function modalOn(_target) {
+	target = _target
+    modal.style.display = "flex"
+	tokenList()
+}
+    
+function isModalOn() {
+	return modal.style.display === "flex"
+}
+    
+function modalOff() {
+	modal.style.display = "none"
+}
+    
+const closeBtn = modal.querySelector(".close-area")
+
+closeBtn.addEventListener("click", e => {
+	modalOff()
+})
+
+modal.addEventListener("click", e => {
+	const evTarget = e.target
+	if(evTarget.classList.contains("modal-overlay")) {
+		modalOff()
+	}
+})
+window.addEventListener("keyup", e => {
+	if(isModalOn() && e.key === "Escape") {
+		modalOff()
+	}
+})
+
+async function tokenList(){
+	let tokenList = "";
+	
+	for(token of tokenDatas){
+		
+		let balance = 0;
+		const stToken = await poolContract.methods.stakedOf(token.address).call()
+ 		if(stToken != emptyAddr){
+ 			const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
+ 			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
+ 	 		const stBal = await stTokenContract.methods.balanceOf(accountAddr).call() / DEX18
+ 	 		const totalSupply = await stTokenContract.methods.totalSupply().call()
+			const totalDeposited = await tokenContract.methods.balanceOf(stToken).call()
+			balance = stBal * totalDeposited / totalSupply
+ 		}
+ 		const image = token.image ? token.image : "../img/white.webp"
+
+ 		tokenList += "<li class=\"token\" onclick=\"choiceToken('" 
+ 			+ token.symbol
+	 		+ "')\"> <div class=\"tokenImg\"><img src="
+	 		+ image
+	 		+ "> </div> <div class=\"tokenInfo\"> <div class=\"tokenSymbol\">"
+	 		+ token.symbol
+	 		+"</div> <div class=\"tokenName\">"
+			+ token.name
+			+ "</div> </div> <div class=\"tokenBalance\">"
+			+ balance
+			+ "</div> </li>";
+ 	}
+	document.getElementById("tokenListBox").innerHTML = tokenList
+}
+
+async function choiceToken(symbol){
+
+ 	for(token of tokenDatas){
+ 		if(token.symbol != symbol){
+ 			continue;
+ 		}
+ 		document.getElementById('symbol_'+target).innerHTML=symbol;
+ 		
+ 		const stToken = await poolContract.methods.stakedOf(token.address).call()
+ 		if(stToken != emptyAddr){
+ 			const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
+ 			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
+ 	 		const stBal = await stTokenContract.methods.balanceOf(accountAddr).call() / DEX18
+ 	 		const totalSupply = await stTokenContract.methods.totalSupply().call()
+			const totalDeposited = await tokenContract.methods.balanceOf(stToken).call()
+			balance = (stBal * totalDeposited / totalSupply).toFixed(4)
+ 	 		document.getElementById('deposited_'+target).innerHTML= balance;	
+ 		}else{
+ 			document.getElementById('deposited_'+target).innerHTML=0;
+ 		}
+ 		if(target=='in'){
+ 			token_in['address'] = stToken;
+ 		}else{
+ 			token_out['address'] = stToken;
+ 		}
+ 		modalOff()
+ 		//checkAllowance()
+ 		break;
+ 	}
+ }
+ 
+ async function checkOpp(_target){
+	 pair["address"] = await findPair(token_in["address"],token_out["address"])
+	 pair["contract"] = new web3.eth.Contract(pairAbi,pair["address"])
+	 if(pair["address"] != emptyAddr){
+
+		 const opp = _target == "input" ? "out" : "in";
+		 const { 0:amountA, 1:amountB } = await pair["contract"].methods.getReserves().call()
+		 const written = document.getElementById(_target).value
+		 let calValue;
+		 if( token_in['address'] < token_out['address'] ){
+			 if(_target == "input"){
+				 calValue = written * amountB / amountA
+			 }else{
+				 calValue = written * amountA / amountB 
+			 }
+		 }else{
+			 if(_target == "input"){
+				 calValue = written * amountA / amountB 
+			 }else{
+				 calValue = written * amountB / amountA
+			 }
+		 }
+		 document.getElementById(opp+"put").value = calValue
+	 }
+
+	 document.getElementById('action').classList.remove('disable')
+ }
+ 
+async function addLiquidity( ){
+	await poolContract.methods.addLiquidity(
+		token_in["address"],
+		token_out["address"],
+		String(document.getElementById("input").value * DEX18),
+		String(document.getElementById("output").value * DEX18)
+	).send({from:accountAddr});
+}
+ 
+async function findPair(_tA, _tB){
+	const { tA, tB } = _tA < _tB ? { tA:_tA, tB:_tB } : { tA:_tB, tB:_tA } 
+	return await poolContract.methods.pairOf(tA,tB).call();
+}
+</script>
+</body>
+</html>
