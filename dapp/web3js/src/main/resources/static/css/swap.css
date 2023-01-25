@@ -44,6 +44,18 @@ header {
 	align-items: center;
 	background-color: white;
 }
+
+#main-wrapper > .info {
+	margin: 0.5em 1em;
+	height : 80px;
+	border-style: outset;
+	border-radius: 2em;
+	display: flex;
+	justify-content:space-between;
+	align-items: center;
+	background-color: white;
+}
+
 #main-wrapper > .token > input{
 	font-size:xx-large;
 	margin-left: 1em;

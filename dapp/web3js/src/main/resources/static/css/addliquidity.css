@@ -34,6 +34,13 @@ header {
 	margin: 0.5em 0em 0em 1.5em;
 	font-family: fantasy;
 }
+
+#main-wrapper > #head > #headRight{
+	float: right; 
+	margin-right: 2em;
+	font-family: monospace;
+}
+
 #main-wrapper > .token {
 	margin: 0.5em 1em;
 	height : 120px;
@@ -44,13 +51,24 @@ header {
 	align-items: center;
 	background-color: white;
 }
+#main-wrapper > .info {
+	margin: 0.5em 1em;
+	height : 80px;
+	border-style: outset;
+	border-radius: 2em;
+	display: none;
+	justify-content:space-between;
+	align-items: center;
+	background-color: white;
+}
+
 #main-wrapper > .token > input{
 	font-size:xx-large;
 	margin-left: 1em;
 	border: 0;
 	width: 60%;
 }
-#main-wrapper > .token > #tokenIn {
+#main-wrapper > .token > .tokenChoice {
 	margin-right: 1em;
 }
 #main-wrapper > .token .searchToken {
@@ -66,9 +84,7 @@ header {
 	font-weight: bold; 
 	font-size: small;
 }
-#main-wrapper > .token > #tokenOut {
-	margin-right: 1em;
-}
+
 #main-wrapper #equality {
 	margin:auto;
 	width:2em;
@@ -84,13 +100,24 @@ header {
 	top:14em;
 	font-weight: bold;
 }
+
+#main-wrapper #liquidity > .reserve {
+	margin: 2em;
+}
+
+#main-wrapper #brandnew {
+	justify-content:center;
+	color: #00cc00;
+}
+
 #main-wrapper #empty {
 	margin: 2em;
 }
-#main-wrapper > #action {
+
+#main-wrapper #action {
 	justify-content:center;
 	border-style:none;
-	background: #113fc8;
+	background: #00cc00;
 }
 #main-wrapper > .disable {
 	background-color: #BBBBBB !important;
