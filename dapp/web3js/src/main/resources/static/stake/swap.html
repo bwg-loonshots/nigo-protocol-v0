@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="EUC-KR">
+<meta charset="UTF-8">
 <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 <script src="./../js/include.js"></script>
 <script src="./../js/tool.js"></script>
@@ -9,31 +9,31 @@
 <script src="../../js/tokenAbi.js"></script>
 <script src="../../js/pairAbi.js"></script>
 <script src="./../js/stakeAbi.js"></script>
-<link rel="stylesheet" type="text/css" href="../css/modal.css">
+<script src="./../js/modal.js"></script>
 <link rel="stylesheet" type="text/css" href="../css/swap.css">
 <title>swap</title>
 </head>
 <body>
-<div id=page-wrapper>
+<div id="page-wrapper">
 	<header data-include="../include/header.html"></header>
 	<div id="main-wrapper">
 		<div id="head">Deposited Swap</div>
 		<div id="from" class="token">
-			<input id="input" type="number" value="0.0" oninput="checkOpp('in')"/>
+			<input id="input" type="number" value="0.0" oninput="checkOpp()"/>
 			<div id=tokenIn>
-				<button id="symbol_in" class="searchToken" onclick="modalOn('in')">tokenList</button>
-				<div class="deposited_box">deposited : <span id="deposited_in">0</span></div>
+				<button id="symbol_from" class="searchToken" onclick="modalOn('from')">tokenList</button>
+				<div class="deposited_box">deposited : <span id="deposited_from">0</span></div>
 			</div>
 		</div>
 		<div id="switch">V</div>
 		<div id="to" class="token">
 			<input id="output" type="number" value="0.0" disabled="disabled"/>
 			<div id=tokenOut>
-				<button id="symbol_out" class="searchToken" onclick="modalOn('out')">tokenList</button>
-				<div class="deposited_box">deposited : <span id="deposited_out">0</span></div>
+				<button id="symbol_to" class="searchToken" onclick="modalOn('to')">tokenList</button>
+				<div class="deposited_box">deposited : <span id="deposited_to">0</span></div>
 			</div>
 		</div>
-		<div class="token">
+		<div class="info">
 			<div class="fee_box">transaction fee</div>
 			<div class="fee_box"><span id="fee">0</span> ETH</div>
 		</div>
@@ -43,35 +43,17 @@
 	</div>
 </div>
 
-
-<div id="modal" class="modal-overlay">
-    <div class="modal-window">
-        <div class="title">
-            <h2>Token List</h2>
-        </div>
-        <div class="close-area">X</div>
-        <div class="content">
-        	<div id="filter_box">
-        		<input id="filter" type="text"/>
-        	</div>
-        	<ul id="tokenListBox" style="overflow: scroll; height: 400px;">
-        	</ul>
-        </div>
-    </div>
-</div>
+<modal data-include="../include/modal.html" ></modal>
 
 <script type="text/javascript">
 let web3;
 let accountAddr;
-let stTokenAddr={};
-let currentTokenBalance;
-let currentTokenContract;
+const curtoken={"from":{},"to":{}};
 let txOption;
 let target;
 let pair={};
-const poolAddr = "0x94945D39a0db93b01fc108012778CEC79507f49b";
+const pool = {"address":"0x94945D39a0db93b01fc108012778CEC79507f49b"};
 const emptyAddr = "0x0000000000000000000000000000000000000000";
-let poolContract;
 const DEX18 = 10**18 
 const DEX9 = 10**9 
 
@@ -80,67 +62,40 @@ async function connect(){
 		const address = await web3.eth.requestAccounts()
 		accountAddr = address[0]
 		document.getElementById('connect').innerHTML = accountAddr.slice(0,7) + '...'
-		poolContract = new web3.eth.Contract(stakingPoolAbi,poolAddr)
+		pool["contract"] = new web3.eth.Contract(stakingPoolAbi,pool["address"])
 	}catch(e){
 		alert('fail to request account')
 		return
 	}
 }
 
-async function tokenList(){
-	document.getElementById('swapn').classList.remove('disable')
-}
-
 window.onload = function(){
 	if(window.ethereum){
 		web3 = new Web3(window.ethereum)
 		document.getElementById('connect').innerHTML='connect wallet'
+		connect()
 	}else{
-		document.getElementById('connect').innerHTML='¸ÞÅ¸¸¶½ºÅ©°¡ ¾ø½À´Ï´Ù'	
+		document.getElementById('connect').innerHTML='ë©”íƒ€ë§ˆìŠ¤í¬ê°€ ì—†ìŠµë‹ˆë‹¤'	
 	}
 }
 
-const modal = document.getElementById("modal")
     
 function modalOn(_target) {
 	target = _target
-    modal.style.display = "flex"
 	tokenList()
+	modalShow()
 }
     
-function isModalOn() {
-	return modal.style.display === "flex"
-}
-    
-function modalOff() {
-	modal.style.display = "none"
-}
-    
-const closeBtn = modal.querySelector(".close-area")
-
-closeBtn.addEventListener("click", e => {
-	modalOff()
-})
-
-modal.addEventListener("click", e => {
-	const evTarget = e.target
-	if(evTarget.classList.contains("modal-overlay")) {
-		modalOff()
-	}
-})
-window.addEventListener("keyup", e => {
-	if(isModalOn() && e.key === "Escape") {
-		modalOff()
-	}
-})
-
 async function tokenList(){
 	let tokenList = "";
-	
 	for(token of tokenDatas){
+		const filter = document.getElementById("filter").value;
+		if(filter && ( !token.symbol.includes(filter) && !token.name.includes(filter))){
+			continue;
+		}
 		
 		let balance = 0;
-		const stToken = await poolContract.methods.stakedOf(token.address).call()
+		const stToken = await pool["contract"].methods.stakedOf(token.address).call()
  		if(stToken != emptyAddr){
  			const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
  			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
@@ -151,17 +106,7 @@ async function tokenList(){
  		}
  		const image = token.image ? token.image : "../img/white.webp"
 
- 		tokenList += "<li class=\"token\" onclick=\"choiceToken('" 
- 			+ token.symbol
-	 		+ "')\"> <div class=\"tokenImg\"><img src="
-	 		+ image
-	 		+ "> </div> <div class=\"tokenInfo\"> <div class=\"tokenSymbol\">"
-	 		+ token.symbol
-	 		+"</div> <div class=\"tokenName\">"
-			+ token.name
-			+ "</div> </div> <div class=\"tokenBalance\">"
-			+ balance
-			+ "</div> </li>";
+ 		tokenList += tokenItem(token.symbol,image,token.name,balance)
  	}
 	document.getElementById("tokenListBox").innerHTML = tokenList
 }
@@ -172,61 +117,85 @@ async function choiceToken(symbol){
  		if(token.symbol != symbol){
  			continue;
  		}
- 		document.getElementById('symbol_'+target).innerHTML=symbol;
  		
- 		const stToken = stTokenAddr[target] = await poolContract.methods.stakedOf(token.address).call()
- 		if(stToken != emptyAddr){
- 			const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
- 			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
- 	 		const stBal = await stTokenContract.methods.balanceOf(accountAddr).call() / DEX18
- 	 		const totalSupply = await stTokenContract.methods.totalSupply().call()
-			const totalDeposited = await tokenContract.methods.balanceOf(stToken).call()
-			balance = (stBal * totalDeposited / totalSupply).toFixed(4)
- 	 		document.getElementById('deposited_'+target).innerHTML= balance;	
+ 		const targetToken = {"address":token.address};
+ 		
+ 		document.getElementById('symbol_'+target).innerHTML = targetToken["symbol"] = symbol;
+ 		
+ 		targetToken["stAddress"] = await pool["contract"].methods.stakedOf(targetToken["address"]).call()
+ 		if(targetToken["stAddress"] != emptyAddr){
+ 			targetToken["contract"] = new web3.eth.Contract(tokenAbi,targetToken["address"])
+ 			targetToken["stContract"] = new web3.eth.Contract(tokenAbi,targetToken["stAddress"])
+ 			targetToken["stBalance"] = await targetToken["stContract"].methods.balanceOf(accountAddr).call() 
+ 	 		targetToken["totalSupply"] = await targetToken["stContract"].methods.totalSupply().call()
+			targetToken["totalDeposited"] = await targetToken["contract"].methods.balanceOf(targetToken["stAddress"]).call()
+			const deposited = (targetToken["stBalance"] / DEX18 * targetToken["totalDeposited"] / targetToken["totalSupply"]).toFixed(4)
+ 	 		document.getElementById('deposited_'+target).innerHTML= deposited;	
  		}else{
  			document.getElementById('deposited_'+target).innerHTML=0;
  		}
- 		modalOff()
- 		//checkAllowance()
+ 		curtoken[target] = targetToken
  		break;
  	}
+ 	
+ 	target="";
+ 	 
+	modalOff()
+	
+	checkPair()
  }
  
-async function checkOpp(_target){
-	pair["address"] = await findPair(stTokenAddr["in"],stTokenAddr["out"]);
-	pair["contract"] = new web3.eth.Contract(pairAbi,pair["address"])
-	if(pair["address"] != emptyAddr){
-		const { 0:amountA, 1:amountB } = await pair["contract"].methods.getReserves().call()
-		const written = document.getElementById("input").value 
-		let calValue;
-		if( stTokenAddr["in"] < stTokenAddr["out"] ){
-		 	calValue = written * amountB / amountA
-		}else{
-			calValue = written * amountA / amountB 
-		}
-		document.getElementById("output").value = ( calValue * 997 / 1000 ).toFixed(4)
+async function checkPair(){
+	if( !curtoken["from"]["stAddress"] || !curtoken["to"]["stAddress"] ){
+		return;
 	}
 	
-	document.getElementById('action').classList.remove('disable')
+	pair["address"] = await findPair(curtoken["from"]["stAddress"],curtoken["to"]["stAddress"])
+	pair["contract"] = new web3.eth.Contract(pairAbi,pair["address"])
 	
-	txFee()
+	const { 0:amountA, 1:amountB } = await pair["contract"].methods.getReserves().call()
+	
+	if( curtoken["from"]['address'] < curtoken["to"]['address'] ){
+		curtoken["from"]["reserved"] = amountA;
+		curtoken["to"]["reserved"] = amountB;
+	}else{
+		curtoken["from"]["reserved"] = amountB;
+		curtoken["to"]["reserved"] = amountA;
+	}
+	
+}
+ 
+async function checkOpp(_target){
+	
+	if(pair["address"] == emptyAddr){
+		return
+	}
+
+	const input = document.getElementById("input").value
+	
+	const stInput = input * curtoken["from"]["totalSupply"] / curtoken["from"]["totalDeposited"];
+	
+	const stOutput = stInput * curtoken["to"]["reserved"] / curtoken["from"]["reserved"];
+	
+	const output = stOutput * curtoken["to"]["totalDeposited"] / curtoken["to"]["totalSupply"];
+	
+	document.getElementById("output").value = ( output * 997 / 1000 ).toFixed(4)
+	
+	if(curtoken["from"]["stBalance"] >= mul18(stInput)){
+		document.getElementById('action').classList.remove('disable')
+		txFee(mul18(stInput))
+	}else{
+		document.getElementById('action').classList.add('disable')
+	}
 }
 
-async function txFee(){
-	const gwei = 1 * DEX9;
+async function txFee(amount){
 	
 	const baseFee = await web3.eth.getBlock("latest").then((block) => {return Number(block.baseFeePerGas)})
 	
-	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then((feeHistory) => {
-	  	const blocks = formatFeeHistory(feeHistory);
-	  	const priority = blocks[0].priorityFeePerGas[0];
-	  	if(priority < gwei){
-	  		return gwei
-	  	}
-	  	return priority;
-	});
-	const amount = String(mul18(document.getElementById('input').value))
-	let units = await poolContract.methods.swap(stTokenAddr["in"],stTokenAddr["out"],amount).estimateGas({from:accountAddr})
+	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then(getPriorityByFeehistory);
+	const amountStr = String(amount)
+	let units = await pool["contract"].methods.swap(curtoken["from"]["stAddress"],curtoken["to"]["stAddress"],amountStr).estimateGas({from:accountAddr})
 	if(units < 21000){
 		units = 21000
 	}
@@ -241,26 +210,14 @@ async function txFee(){
 
 async function findPair(_tA, _tB){
 	const { tA, tB } = _tA < _tB ? { tA:_tA, tB:_tB } : { tA:_tB, tB:_tA } 
-	return await poolContract.methods.pairOf(tA,tB).call();
+	return await pool["contract"].methods.pairOf(tA,tB).call();
 }
 
 async function swap(){
 	const amount = String(mul18(document.getElementById("input").value))
-	await poolContract.methods.swap(stTokenAddr["in"],stTokenAddr["out"],amount).send(txOption);
+	await pool["contract"].methods.swap(curtoken["from"]["stAddress"],curtoken["to"]["stAddress"],amount).send(txOption);
 }
 
-function formatFeeHistory(result) {
-	let blockNum = web3.utils.hexToNumber(result.oldestBlock)
-	let index = 0;
-	const blocks = [];
-	blocks.push({
-		number: blockNum,
-		baseFeePerGas: Number(result.baseFeePerGas[index]),
-		gasUsedRatio: Number(result.gasUsedRatio[index]),
-		priorityFeePerGas: result.reward[index].map(x => Number(x)),
-    });
-	return blocks;
-}
 </script>
 </body>
 </html>

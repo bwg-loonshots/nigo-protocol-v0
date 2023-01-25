@@ -1,12 +1,14 @@
+<link rel="stylesheet" type="text/css" href="../css/modal.css">
+
 <div id="modal" class="modal-overlay">
     <div class="modal-window">
         <div class="title">
             <h2>Token List</h2>
         </div>
-        <div class="close-area">X</div>
+        <div class="close-area" onclick="modalOff()">X</div>
         <div class="content">
         	<div id="filter_box">
-        		<input id="filter" type="text"/>
+        		<input id="filter" type="text" oninput="tokenList()"/>
         	</div>
         	<ul id="tokenListBox" style="overflow: scroll; height: 400px;">
         	</ul>
@@ -14,65 +16,3 @@
     </div>
 </div>
 
-<script>
-const modal = document.getElementById("modal")
-const closeBtn = modal.querySelector(".close-area")
-modal.addEventListener("click", e => {
-	const evTarget = e.target
-	if(evTarget.classList.contains("modal-overlay")) {
-		modalOff()
-	}
-})
-closeBtn.addEventListener("click", e => {
-	modalOff()
-})
-
-async function modalOn() {
-	await tokenList()
-	modal.style.display = "flex"
-}
-
-async function tokenList(){
-	let tokenList = "";
-	for(token of tokenDatas){
-			const image = token.image ? token.image : "../img/white.webp"
-			const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
-			const balance = await tokenContract.methods.balanceOf(accountAddr).call() / DEX18
-			tokenList += "<li class=\"token\" onclick=\"choiceToken('" 
-			+ token.symbol
-			+ "')\"> <div class=\"tokenImg\"><img src="
-			+ image
-			+ "> </div> <div class=\"tokenInfo\"> <div class=\"tokenSymbol\">"
-			+ token.symbol
-			+"</div> <div class=\"tokenName\">"
-		+ token.name
-		+ "</div> </div> <div class=\"tokenBalance\">"
-		+ balance
-		+ "</div> </li>"
-		}
-	document.getElementById("tokenListBox").innerHTML = tokenList
-}
-
-async function choiceToken(symbol){
- 	for(token of tokenDatas){
- 		if(token.symbol != symbol){
- 			continue;
- 		}
- 		currentToken = token.address;
- 		document.getElementById('tokenInButton').innerHTML=symbol;
- 		currentTokenContract = new web3.eth.Contract(tokenAbi,token.address)
- 		document.getElementById('balance').innerHTML = currentTokenBalance = (await currentTokenContract.methods.balanceOf(accountAddr).call() / DEX18).toFixed(4)
- 		const stToken = await poolContract.methods.stakedOf(currentToken).call()
- 		if(stToken != emptyAddr){
- 			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
- 	 		const stBal = await stTokenContract.methods.balanceOf(accountAddr).call() / DEX18
- 	 		document.getElementById('deposited').innerHTML= await convertStToOrg(stBal);	
- 		}else{
- 			document.getElementById('deposited').innerHTML=0;
- 		}
- 		modalOff()
- 		checkAllowance()
- 		break;
- 	}
- }
-</script>

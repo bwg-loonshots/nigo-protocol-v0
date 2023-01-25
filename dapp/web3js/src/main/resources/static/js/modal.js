@@ -1,4 +1,14 @@
-let modal,closeBtn,isModalOn,modalOn,modalOff;
+function modalShow(){
+	modal.style.display = "flex"
+}
+
+function modalOff() {
+     modal.style.display = "none"
+}
+
+function isModalOn() {
+	return modal.style.display === "flex"
+}
 
 window.addEventListener("keyup", e => {
 	if(isModalOn() && e.key === "Escape") {
@@ -6,32 +16,17 @@ window.addEventListener("keyup", e => {
 	}
 })
 
-window.onload = function(){
-	modal = document.getElementById("modal")
-	
-	closeBtn = modal.querySelector(".close-area")
-	
-	modal.addEventListener("click", e => {
-		const evTarget = e.target
-		if(evTarget.classList.contains("modal-overlay")) {
-			modalOff()
-		}
-	})
-	
-	closeBtn.addEventListener("click", e => {
-		modalOff()
-	})
-	
-	isModalOn = () => {
-		return modal.style.display === "flex"		
-	}
-	
-	modalOn = async () => {
-		await tokenList()
-		modal.style.display = "flex"
-	}
-	
-	modalOff = () => {	
-    	modal.style.display = "none"
-	}
-}  
+function tokenItem(symbol,image,name,balance){
+	let item = "<li class=\"token\" onclick=\"choiceToken('" 
+ 		+ symbol
+ 		+ "')\"> <div class=\"tokenImg\"><img src="
+ 		+ image
+ 		+ "> </div> <div class=\"tokenInfo\"> <div class=\"tokenSymbol\">"
+ 		+ symbol
+ 		+"</div> <div class=\"tokenName\">"
+		+ name
+		+ "</div> </div> <div class=\"tokenBalance\">"
+		+ balance
+		+ "</div> </li>";
+	return item;
+}

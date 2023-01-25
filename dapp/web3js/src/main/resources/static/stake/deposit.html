@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="EUC-KR">
+<meta charset="UTF-8">
 <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 <script src="./../js/tool.js"></script>
 <script src="./../js/include.js"></script>
 <script src="./../js/tokenDatas.js"></script>
 <script src="./../js/tokenAbi.js"></script>
 <script src="./../js/stakeAbi.js"></script>
-<link rel="stylesheet" type="text/css" href="../css/modal.css">
+<script src="./../js/modal.js"></script>
 <link rel="stylesheet" type="text/css" href="../css/deposit.css">
 <title>Deposit</title>
 </head>
@@ -24,17 +24,17 @@
 				<div class="balance_box">deposited : <span id="deposited">0</span></div>
 			</div>
 		</div>
-		<div class="token">
+		<div class="info">
 			<div id="amountBox">
 				<div>Amount</div>
 				<input id="amount" type="number" oninput="checkAllowance()" value="0.0"/>
 			</div>
 		</div>
-		<div class="token">
+		<div class="info">
 			<div class="fee_box">transaction fee</div>
 			<div class="fee_box"><span id="fee">0</span> ETH</div>
 		</div>
-		<div id="approve" class="token" onclick="approve()">
+		<div id="approve" class="info" onclick="approve()">
 			<h1>APPROVE</h1>
 		</div>
 		<div id="action" class="token disable" onclick="deposit()">
@@ -43,32 +43,15 @@
 	</div>
 </div>
 
-<div id="modal" class="modal-overlay">
-    <div class="modal-window">
-        <div class="title">
-            <h2>Token List</h2>
-        </div>
-        <div class="close-area">X</div>
-        <div class="content">
-        	<div id="filter_box">
-        		<input id="filter" type="text"/>
-        	</div>
-        	<ul id="tokenListBox" style="overflow: scroll; height: 400px;">
-        	</ul>
-        </div>
-    </div>
-</div>
+<modal data-include="../include/modal.html" ></modal>
 
 <script type="text/javascript">
 let web3;
 let accountAddr;
-let currentToken;
-let currentTokenBalance;
-let currentTokenContract;
-let txOption;
-const poolAddr = "0x94945D39a0db93b01fc108012778CEC79507f49b";
 const emptyAddr = "0x0000000000000000000000000000000000000000";
-let poolContract;
+let txOption;
+const curtoken={};
+const pool = {"address":"0x94945D39a0db93b01fc108012778CEC79507f49b"};
 const DEX18 = 10**18 
 const DEX9 = 10**9 
 
@@ -77,71 +60,40 @@ async function connect(){
 		const address = await web3.eth.requestAccounts()
 		accountAddr = address[0]
 		document.getElementById('connect').innerHTML = accountAddr.slice(0,7) + '...'
-		poolContract = new web3.eth.Contract(stakingPoolAbi,poolAddr)
-	}catch(e){
+		pool["contract"] = new web3.eth.Contract(stakingPoolAbi,pool["address"])
+	} catch(e){
 		alert('fail to request account')
 		return
-	}
+	} 
 }
 
 window.onload = function(){
 	if(window.ethereum){
 		web3 = new Web3(window.ethereum)
 		document.getElementById('connect').innerHTML='connect wallet'
+		connect()
 	}else{
-		document.getElementById('connect').innerHTML='¸ÞÅ¸¸¶½ºÅ©°¡ ¾ø½À´Ï´Ù'	
+		document.getElementById('connect').innerHTML='ë©”íƒ€ë§ˆìŠ¤í¬ê°€ ì—†ìŠµë‹ˆë‹¤'	
 	}
 }  
-const modal = document.getElementById("modal")
 
 async function modalOn() {
 	await tokenList()
-	modal.style.display = "flex"
+	modalShow()
 }
-
-function isModalOn() {
-	return modal.style.display === "flex"
-}
-
-function modalOff() {
-     modal.style.display = "none"
-}
-const closeBtn = modal.querySelector(".close-area")
-
-closeBtn.addEventListener("click", e => {
-	modalOff()
-})
-
-modal.addEventListener("click", e => {
-	const evTarget = e.target
-	if(evTarget.classList.contains("modal-overlay")) {
-		modalOff()
-	}
-})
-	
-window.addEventListener("keyup", e => {
-	if(isModalOn() && e.key === "Escape") {
-		modalOff()
-	}
-})
  	
 async function tokenList(){
 	let tokenList = "";
 	for(token of tokenDatas){
+		const filter = document.getElementById("filter").value;
+		if(filter && ( !token.symbol.includes(filter) && !token.name.includes(filter))){
+			continue;
+		}
+		
  		const image = token.image ? token.image : "../img/white.webp"
  		const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
- 		const balance = await tokenContract.methods.balanceOf(accountAddr).call() / DEX18
- 		tokenList += "<li class=\"token\" onclick=\"choiceToken('" 
- 		+ token.symbol
- 		+ "')\"> <div class=\"tokenImg\"><img src="
- 		+ image
- 		+ "> </div> <div class=\"tokenInfo\"> <div class=\"tokenSymbol\">"
- 		+ token.symbol
- 		+"</div> <div class=\"tokenName\">"
-		+ token.name
-		+ "</div> </div> <div class=\"tokenBalance\">"
-		+ balance
-		+ "</div> </li>"
+ 		const balance = (await tokenContract.methods.balanceOf(accountAddr).call() / DEX18).toFixed(4)
+ 		tokenList += tokenItem(token.symbol,image,token.name,balance)
  	}
 	document.getElementById("tokenListBox").innerHTML = tokenList
  }
@@ -152,15 +104,16 @@ async function tokenList(){
  		if(token.symbol != symbol){
  			continue;
  		}
- 		currentToken = token.address;
- 		document.getElementById('tokenInButton').innerHTML=symbol;
- 		currentTokenContract = new web3.eth.Contract(tokenAbi,token.address)
- 		document.getElementById('balance').innerHTML = currentTokenBalance = (await currentTokenContract.methods.balanceOf(accountAddr).call() / DEX18).toFixed(4)
- 		const stToken = await poolContract.methods.stakedOf(currentToken).call()
- 		if(stToken != emptyAddr){
- 			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
- 	 		const stBal = await stTokenContract.methods.balanceOf(accountAddr).call() / DEX18
- 	 		document.getElementById('deposited').innerHTML= await convertStToOrg(stBal);	
+ 		curtoken["address"] = token.address;
+ 		document.getElementById('tokenInButton').innerHTML = curtoken["symbol"] = symbol;
+ 		curtoken["contract"] = new web3.eth.Contract(tokenAbi,curtoken["address"])
+ 		curtoken["balance"] = await curtoken["contract"].methods.balanceOf(accountAddr).call()
+ 		document.getElementById('balance').innerHTML = ( curtoken["balance"] / DEX18).toFixed(4)
+ 		curtoken["stAddress"] = await pool["contract"].methods.stakedOf(curtoken["address"]).call()
+ 		if(curtoken["stAddress"] != emptyAddr){
+ 			curtoken["stContract"] = new web3.eth.Contract(tokenAbi,curtoken["stAddress"])
+ 			curtoken["stBalance"] = await curtoken["stContract"].methods.balanceOf(accountAddr).call() 
+ 	 		document.getElementById('deposited').innerHTML= await convertStToOrg();	
  		}else{
  			document.getElementById('deposited').innerHTML=0;
  		}
@@ -170,10 +123,9 @@ async function tokenList(){
  	}
  }
  
- async function checkDeposit(){
-	 const amount = String(mul18(document.getElementById('amount').value))
+ async function checkDeposit(amount){
 	 const approveState = document.getElementById('approve').style.display;
-	 if( amount > currentTokenBalance || approveState=='flex' ){
+	 if( amount > curtoken["balance"] || approveState=='flex' ){
 		 document.getElementById('action').classList.add('disable')
 	 }else{
 		 document.getElementById('action').classList.remove('disable')
@@ -182,50 +134,44 @@ async function tokenList(){
  }
  
  async function checkAllowance(){
-	 if(!currentToken){
+	 if(!curtoken["address"]){
 		 return;
 	 }
-	 const allowance = await currentTokenContract.methods.allowance(accountAddr,poolAddr).call()
-	 const amount = mul18(document.getElementById('amount').value) 
+	 
+	 const allowance = await curtoken["contract"].methods.allowance(accountAddr,pool["address"]).call()
+	 const amount = mul18(document.getElementById('amount').value)
 	 if(amount > allowance){
 		 document.getElementById('approve').style.display = "flex";
 	 }else{
 		 document.getElementById('approve').style.display = "none";
+		 txFee(amount)
 	 }
-	 txFee()
-	 checkDeposit()
+	 checkDeposit(amount)
  }
  
- async function approve(){
-	 const amount = String(mul18(document.getElementById('amount').value)) 
-	 await currentTokenContract.methods.approve(poolAddr,amount).send({from:accountAddr})
- }
+async function approve(){
+	const amount = String(mul18(document.getElementById('amount').value)) 
+	await curtoken["contract"].methods.approve(pool["address"],amount).send({from:accountAddr})
+	checkAllowance()
+}
  
 async function deposit(){
 	const amount = String(mul18(document.getElementById('amount').value))
-	await poolContract.methods.stake(currentToken,amount).send(txOption)
+	await pool["contract"].methods.stake(curtoken["address"],amount).send(txOption)
 }
 
-async function txFee(){
-	const gwei = 1 * DEX9;
+async function txFee(amount){
 	
 	const baseFee = await web3.eth.getBlock("latest").then((block) => {return Number(block.baseFeePerGas)})
 	
-	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then((feeHistory) => {
-	  	const blocks = formatFeeHistory(feeHistory);
-	  	const priority = blocks[0].priorityFeePerGas[0];
-	  	if(priority < gwei){
-	  		return gwei
-	  	}
-	  	return priority;
-	});
+	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then(getPriorityByFeehistory);
 	
 	let units = 0
 	
 	if(document.getElementById('amount').value > 0){
 		
-		const amount = String(mul18(document.getElementById('amount').value))
-		units = await poolContract.methods.stake(currentToken,amount).estimateGas({from:accountAddr})
+		const amountStr = String(amount)
+		units = await pool["contract"].methods.stake(curtoken["address"],amountStr).estimateGas({from:accountAddr})
 		if(units < 21000){
 			units = 21000
 		}
@@ -239,26 +185,11 @@ async function txFee(){
 	document.getElementById("fee").innerHTML = ((baseFee + priorityFee) * units / DEX18).toFixed(4)
 }
 
-function formatFeeHistory(result) {
-	let blockNum = web3.utils.hexToNumber(result.oldestBlock)
-	let index = 0;
-	const blocks = [];
-	blocks.push({
-		number: blockNum,
-		baseFeePerGas: Number(result.baseFeePerGas[index]),
-		gasUsedRatio: Number(result.gasUsedRatio[index]),
-		priorityFeePerGas: result.reward[index].map(x => Number(x)),
-    });
-	return blocks;
-}
-
-async function convertStToOrg(deposited){
-	const stToken = await poolContract.methods.stakedOf(currentToken).call()
-	const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
-	const totalSupply = await stTokenContract.methods.totalSupply().call()
-	const totalDeposited = await currentTokenContract.methods.balanceOf(stToken).call()
-	const amount = deposited * totalDeposited / totalSupply
-	return amount
+async function convertStToOrg(){
+	const totalSupply = await curtoken["stContract"].methods.totalSupply().call()
+	const totalDeposited = await curtoken["contract"].methods.balanceOf(curtoken["stAddress"]).call()
+	const deposited = (curtoken["stBalance"] / DEX18 * totalDeposited / totalSupply).toFixed(4)
+	return deposited
 }
 </script>
 </body>
