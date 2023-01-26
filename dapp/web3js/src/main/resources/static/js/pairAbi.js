@@ -106,24 +106,6 @@ const pairAbi = [
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "_amountA",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_amountB",
-				"type": "uint256"
-			}
-		],
-		"name": "addLiquidity",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "address",
 				"name": "_owner",
 				"type": "address"
@@ -138,7 +120,7 @@ const pairAbi = [
 		"outputs": [
 			{
 				"internalType": "uint256",
-				"name": "remaining",
+				"name": "",
 				"type": "uint256"
 			}
 		],
@@ -186,7 +168,36 @@ const pairAbi = [
 		"outputs": [
 			{
 				"internalType": "bool",
-				"name": "success",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "approveFrom",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
 				"type": "bool"
 			}
 		],
@@ -205,7 +216,7 @@ const pairAbi = [
 		"outputs": [
 			{
 				"internalType": "uint256",
-				"name": "balance",
+				"name": "",
 				"type": "uint256"
 			}
 		],
@@ -233,12 +244,12 @@ const pairAbi = [
 	},
 	{
 		"inputs": [],
-		"name": "blockTimestampLast",
+		"name": "creator",
 		"outputs": [
 			{
-				"internalType": "uint256",
+				"internalType": "address",
 				"name": "",
-				"type": "uint256"
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",
@@ -252,6 +263,19 @@ const pairAbi = [
 				"internalType": "uint8",
 				"name": "",
 				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "fee",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -276,63 +300,6 @@ const pairAbi = [
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_tokenA",
-				"type": "address"
-			}
-		],
-		"name": "getReservesOrderedBy",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "_reservedA",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_reservedB",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint32",
-				"name": "fee",
-				"type": "uint32"
-			},
-			{
-				"internalType": "uint8",
-				"name": "feeDecimal",
-				"type": "uint8"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getTWAP",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "_twapA",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_twapB",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_blockTimestampLast",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "k",
 		"outputs": [
@@ -343,35 +310,6 @@ const pairAbi = [
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "tokenOut",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amountOut",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			}
-		],
-		"name": "loan",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "amountIn",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -390,13 +328,19 @@ const pairAbi = [
 	{
 		"inputs": [
 			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			}
+		],
+		"name": "stake",
+		"outputs": [
+			{
 				"internalType": "uint256",
 				"name": "liquidity",
 				"type": "uint256"
 			}
 		],
-		"name": "removeLiquidity",
-		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -406,11 +350,6 @@ const pairAbi = [
 				"internalType": "address",
 				"name": "tokenIn",
 				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amountIn",
-				"type": "uint256"
 			},
 			{
 				"internalType": "address",
@@ -485,12 +424,12 @@ const pairAbi = [
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "_to",
+				"name": "to",
 				"type": "address"
 			},
 			{
 				"internalType": "uint256",
-				"name": "_value",
+				"name": "value",
 				"type": "uint256"
 			}
 		],
@@ -498,7 +437,7 @@ const pairAbi = [
 		"outputs": [
 			{
 				"internalType": "bool",
-				"name": "success",
+				"name": "",
 				"type": "bool"
 			}
 		],
@@ -509,17 +448,17 @@ const pairAbi = [
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "_from",
+				"name": "from",
 				"type": "address"
 			},
 			{
 				"internalType": "address",
-				"name": "_to",
+				"name": "to",
 				"type": "address"
 			},
 			{
 				"internalType": "uint256",
-				"name": "_value",
+				"name": "value",
 				"type": "uint256"
 			}
 		],
@@ -527,7 +466,7 @@ const pairAbi = [
 		"outputs": [
 			{
 				"internalType": "bool",
-				"name": "success",
+				"name": "",
 				"type": "bool"
 			}
 		],
@@ -535,29 +474,27 @@ const pairAbi = [
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "twapA",
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			}
+		],
+		"name": "unstake",
 		"outputs": [
 			{
 				"internalType": "uint256",
-				"name": "",
+				"name": "amountA",
 				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "twapB",
-		"outputs": [
+			},
 			{
 				"internalType": "uint256",
-				"name": "",
+				"name": "amountB",
 				"type": "uint256"
 			}
 		],
-		"stateMutability": "view",
+		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]

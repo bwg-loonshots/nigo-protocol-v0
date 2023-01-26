@@ -44,3 +44,27 @@ function objectParsing(obj,depth){
 	txt += '&nbsp;&nbsp;'.repeat(depth) + '}<br/>'
 	return txt
 }
+
+function getPriorityByFeehistory(feeHistory){
+	const gwei = 1 * DEX9;
+	const blocks = formatFeeHistory(feeHistory);
+  	const priority = blocks[0].priorityFeePerGas[0];
+  	if(priority < gwei){
+  		return gwei
+  	}
+  	return priority;
+}
+
+function formatFeeHistory(result) {
+	let blockNum = web3.utils.hexToNumber(result.oldestBlock)
+	let index = 0;
+	const blocks = [];
+	blocks.push({
+		number: blockNum,
+		baseFeePerGas: Number(result.baseFeePerGas[index]),
+		gasUsedRatio: Number(result.gasUsedRatio[index]),
+		priorityFeePerGas: result.reward[index].map(x => Number(x)),
+    });
+	return blocks;
+}
+

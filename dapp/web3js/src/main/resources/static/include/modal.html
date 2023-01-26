@@ -1,0 +1,18 @@
+<link rel="stylesheet" type="text/css" href="../css/modal.css">
+
+<div id="modal" class="modal-overlay">
+    <div class="modal-window">
+        <div class="title">
+            <h2>Token List</h2>
+        </div>
+        <div class="close-area" onclick="modalOff()">X</div>
+        <div class="content">
+        	<div id="filter_box">
+        		<input id="filter" type="text" oninput="tokenList()"/>
+        	</div>
+        	<ul id="tokenListBox" style="overflow: scroll; height: 400px;">
+        	</ul>
+        </div>
+    </div>
+</div>
+

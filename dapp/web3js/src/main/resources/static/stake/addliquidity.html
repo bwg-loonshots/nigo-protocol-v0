@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="./../js/include.js"></script>
+<script src="./../js/tokenDatas.js"></script>
+<script src="../../js/tokenAbi.js"></script>
+<script src="../../js/pairAbi.js"></script>
+<script src="./../js/stakeAbi.js"></script>
+<script src="./../js/modal.js"></script>
+<link rel="stylesheet" type="text/css" href="../css/addliquidity.css">
+<title>addLiquidity</title>
+</head>
+<body>
+<div id=page-wrapper>
+	<header data-include="../include/header.html"></header>
+	<div id="main-wrapper">
+		<div id="head">
+			Add Liquidity
+			<div id="headRight">
+				use current ratio
+				<input id="useRatio" type="checkbox" checked />
+			</div>
+		</div>
+		<div id="group_A" class="token">
+			<input id="input_A" type="number" oninput="checkOpp('A')" value="0.0"/>
+			<div id=token_A class="tokenChoice">
+				<button id="symbol_A" class="searchToken" onclick="modalOn('A')">tokenList</button>
+				<div class="deposited_box">deposited : <span id="deposited_A">0</span></div>
+			</div>
+		</div>
+		<div id="equality">=</div>
+		<div id="group_B" class="token">
+			<input id="input_B" type="number" oninput="checkOpp('B')" value="0.0"/>
+			<div id=token_B class="tokenChoice">
+				<button id="symbol_B" class="searchToken" onclick="modalOn('B')">tokenList</button>
+				<div class="deposited_box">deposited : <span id="deposited_B">0</span></div>
+			</div>
+		</div>
+		<div id="liquidity" class="info">
+			<div id="reservLeft" class="reserve">
+				<div id="reservLeftToken"></div>
+				<div id="reservLeftAmount"></div>
+			</div>
+			<div style="font-weight: bolder; font-size: xx-large;">:</div>
+			<div id="reservRight" class="reserve">
+				<div id="reservRightToken"></div>
+				<div id="reservRightAmount"></div>
+			</div>
+		</div>
+		<div id="brandnew" class="info">
+			<h1>Brand New Liquidity</h1>
+		</div>
+		<div id="empty"></div>
+		<div id="action" class="token disable" onclick="addLiquidity()">
+			<h1>Add Liquidity</h1>
+		</div>
+	</div>
+</div>
+
+<modal data-include="../include/modal.html" ></modal>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+const curtoken = {"A":{},"B":{}};
+let pair={};
+let txOption;
+let target;
+const pool = {"address":"0x94945D39a0db93b01fc108012778CEC79507f49b"};
+const emptyAddr = "0x0000000000000000000000000000000000000000";
+const DEX18 = 10**18 
+const DEX9 = 10**9 
+
+async function connect(){
+	try{
+		const address = await web3.eth.requestAccounts()
+		accountAddr = address[0]
+		document.getElementById('connect').innerHTML = accountAddr.slice(0,7) + '...'
+		pool["contract"] = new web3.eth.Contract(stakingPoolAbi,pool["address"])
+	}catch(e){
+		alert('fail to request account')
+		return
+	}
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('connect').innerHTML='connect wallet'
+		connect()
+	}else{
+		document.getElementById('connect').innerHTML='메타마스크가 없습니다'	
+	}
+}
+    
+function modalOn(_target) {
+	target = _target
+	tokenList()
+	modalShow()
+}
+
+async function tokenList(){
+	let tokenList = "";
+	
+	for(token of tokenDatas){
+		const filter = document.getElementById("filter").value;
+		if(filter && ( !token.symbol.includes(filter) && !token.name.includes(filter))){
+			continue;
+		}
+		
+		let balance = 0;
+		const stToken = await pool["contract"].methods.stakedOf(token.address).call()
+ 		if(stToken != emptyAddr){
+ 			const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
+ 			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
+ 	 		const stBal = await stTokenContract.methods.balanceOf(accountAddr).call() / DEX18
+ 	 		const totalSupply = await stTokenContract.methods.totalSupply().call()
+			const totalDeposited = await tokenContract.methods.balanceOf(stToken).call()
+			balance = (stBal * totalDeposited / totalSupply).toFixed(4)
+ 		}
+ 		const image = token.image ? token.image : "../img/white.webp"
+
+ 		tokenList += tokenItem(token.symbol, image, token.name, balance)
+ 	}
+	document.getElementById("tokenListBox").innerHTML = tokenList
+}
+
+async function choiceToken(symbol){
+
+ 	for(token of tokenDatas){
+ 		if(token.symbol != symbol){
+ 			continue;
+ 		}
+ 		
+ 		const targetToken = {"address":token.address};
+ 		
+ 		document.getElementById('symbol_'+target).innerHTML = targetToken["symbol"] = symbol;
+ 		
+ 		targetToken["stAddress"] = await pool["contract"].methods.stakedOf(targetToken["address"]).call()
+ 		if(targetToken["stAddress"] != emptyAddr){
+ 			targetToken["contract"] = new web3.eth.Contract(tokenAbi,targetToken["address"])
+ 			targetToken["stContract"] = new web3.eth.Contract(tokenAbi,targetToken["stAddress"])
+ 			targetToken["stBalance"] = await targetToken["stContract"].methods.balanceOf(accountAddr).call() 
+ 	 		targetToken["totalSupply"] = await targetToken["stContract"].methods.totalSupply().call()
+			targetToken["totalDeposited"] = await targetToken["contract"].methods.balanceOf(targetToken["stAddress"]).call()
+			balance = (targetToken["stBalance"] / DEX18 * targetToken["totalDeposited"] / targetToken["totalSupply"]).toFixed(4)
+ 	 		document.getElementById('deposited_'+target).innerHTML= balance;	
+ 		}else{
+ 			document.getElementById('deposited_'+target).innerHTML=0;
+ 		}
+ 		curtoken[target] = targetToken;
+ 		break;
+ 	}
+ 	
+ 	target="";
+		
+	modalOff()
+	
+	await checkPair()
+}
+
+async function checkPair(){
+	if( !curtoken["A"]["stAddress"] || !curtoken["B"]["stAddress"] ){
+		return;
+	}
+	
+	pair["address"] = await findPair(curtoken["A"]["stAddress"],curtoken["B"]["stAddress"])
+	
+	if(pair["address"] == emptyAddr){
+		document.getElementById("brandnew").style.display="flex";
+		document.getElementById("liquidity").style.display="none";
+		curtoken["A"]["reserved"] = null;
+		curtoken["B"]["reserved"] = null;
+		return;
+	}else{
+		document.getElementById("brandnew").style.display="none";
+		document.getElementById("liquidity").style.display="flex";
+	}
+	
+	pair["contract"] = new web3.eth.Contract(pairAbi,pair["address"])
+	const { 0:amountA, 1:amountB } = await pair["contract"].methods.getReserves().call()
+	
+	if( curtoken["A"]['address'] < curtoken["B"]['address'] ){
+		curtoken["A"]["reserved"] = amountA;
+		curtoken["B"]["reserved"] = amountB;
+	}else{
+		curtoken["A"]["reserved"] = amountB;
+		curtoken["B"]["reserved"] = amountA;
+	}
+	document.getElementById("reservLeftToken").innerHTML= curtoken["A"]["symbol"] 
+	document.getElementById("reservLeftAmount").innerHTML=(curtoken["A"]["reserved"] / DEX18).toFixed(4)
+	document.getElementById("reservRightToken").innerHTML= curtoken["B"]["symbol"]
+	document.getElementById("reservRightAmount").innerHTML=(curtoken["B"]["reserved"] / DEX18).toFixed(4)
+	
+}
+ 
+async function checkOpp(_target){
+	const checkeBox = document.getElementById("useRatio").checked
+	
+	if(pair["address"] == emptyAddr || !checkeBox){
+		return
+	}
+
+	const opp = _target == "A" ? "B" : "A";
+	
+	const input = document.getElementById("input_"+_target).value;
+	
+	const stInput = input * curtoken[_target]["totalSupply"] / curtoken[_target]["totalDeposited"];
+	
+	const stOutput = stInput * curtoken[opp]["reserved"] / curtoken[_target]["reserved"];
+	
+	const output = stOutput * curtoken[opp]["totalDeposited"] / curtoken[opp]["totalSupply"];
+	
+	document.getElementById("input_"+opp).value = output;
+
+	document.getElementById('action').classList.remove('disable')	
+}
+ 
+async function addLiquidity( ){
+	await pool["contract"].methods.addLiquidity(
+		curtoken["A"]["address"],
+		curtoken["B"]["address"],
+		String(document.getElementById("input_A").value * DEX18),
+		String(document.getElementById("input_B").value * DEX18)
+	).send({from:accountAddr});
+}
+ 
+async function findPair(_tA, _tB){
+	const { tA, tB } = _tA < _tB ? { tA:_tA, tB:_tB } : { tA:_tB, tB:_tA } 
+	return await pool["contract"].methods.pairOf(tA,tB).call();
+}
+</script>
+</body>
+</html>

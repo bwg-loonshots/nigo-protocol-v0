@@ -37,6 +37,14 @@ contract StakingPool is IERC3156FlashLender{
         tokenPairRecipe = _tokenPairRecipe;
     }
 
+    function stakedTokens() external view returns(address[] memory) {
+        return tokens;
+    }
+
+    function stakedPairs() external view returns(address[] memory) {
+        return pairs;
+    }
+
     function newStakingToken(address token) private returns(address stToken){
         (bool success, bytes memory data) = tokenRecipe.delegatecall(
             abi.encodeWithSignature("newStakingToken(address)", token)
