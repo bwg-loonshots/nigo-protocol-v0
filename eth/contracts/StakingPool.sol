@@ -45,6 +45,11 @@ contract StakingPool is IERC3156FlashLender{
         return pairs;
     }
 
+    function mintedByReserved(address token) external view returns(uint minted, uint reserved) {
+        minted = IERC20(stakedOf[token]).totalSupply();
+        reserved = IERC20Stakeable(stakedOf[token]).reserved();
+    }
+
     function newStakingToken(address token) private returns(address stToken){
         (bool success, bytes memory data) = tokenRecipe.delegatecall(
             abi.encodeWithSignature("newStakingToken(address)", token)
