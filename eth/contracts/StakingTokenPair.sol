@@ -30,7 +30,7 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
         creator = msg.sender;
     }
 
-    function getReserves() public view returns(uint256, uint256) {
+    function getReserves() external override view returns(uint256, uint256) {
         return (reservedA, reservedB);
     }
 

@@ -192,11 +192,40 @@ contract StakingPool is IERC3156FlashLender{
             pairs.push(pair);
         }
 
+        // TODO optimize amount ratio for arbitrage
+
         tokenA._transferFrom(from, pair, amountA);
         tokenB._transferFrom(from, pair, amountB);
 
         liquidity = IERC20PairStakeable(pair).stake(to);
 
+    }
+
+    function _optimizePairAmounts(
+        uint _amountA, 
+        uint _amountB, 
+        uint minA, 
+        uint minB, 
+        address pair
+    ) internal view returns(uint amountA, uint amountB) {
+
+        (uint reservedA, uint reservedB) = IERC20PairStakeable(pair).getReserves();
+        
+        if(reservedA == 0 && reservedB == 0) {
+            amountA = _amountA;
+            amountB = _amountB;
+        } else {
+            amountB = _amountA * reservedB / reservedA;
+            if( amountB <= _amountB) {
+                require(amountB >= minB, "nigo: insufficient amount b");
+                amountA = _amountA;
+            } else {
+                amountA = reservedA * _amountB / reservedB;
+                assert(amountA <= _amountA);
+                require(amountA >= minA, "nigo: insufficient amount a");
+                amountB = _amountB;
+            }
+        }        
     }
 
     // approve pair token from staker to contract, reserved token A, B will be withdrawed for staker 
