@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="./../js/tool.js"></script>
 <script src="./../js/include.js"></script>
 <script src="./../js/tokenDatas.js"></script>
 <script src="../../js/tokenAbi.js"></script>
@@ -19,10 +20,10 @@
 	<div id="main-wrapper">
 		<div id="head">
 			Add Liquidity
-			<div id="headRight">
+			<!-- <div id="headRight">
 				use current ratio
 				<input id="useRatio" type="checkbox" checked />
-			</div>
+			</div> -->
 		</div>
 		<div id="group_A" class="token">
 			<input id="input_A" type="number" oninput="checkOpp('A')" value="0.0"/>
@@ -53,6 +54,10 @@
 		<div id="brandnew" class="info">
 			<h1>Brand New Liquidity</h1>
 		</div>
+		<div class="info" style="display: flex;">
+			<div class="fee_box">transaction fee</div>
+			<div class="fee_box"><span id="fee">0</span> ETH</div>
+		</div>
 		<div id="empty"></div>
 		<div id="action" class="token disable" onclick="addLiquidity()">
 			<h1>Add Liquidity</h1>
@@ -70,7 +75,7 @@ const curtoken = {"A":{},"B":{}};
 let pair={};
 let txOption;
 let target;
-const pool = {"address":"0x94945D39a0db93b01fc108012778CEC79507f49b"};
+const pool = {"address":"0x523857C2136750432D05Cae33a17714f302Be86e"};
 const emptyAddr = "0x0000000000000000000000000000000000000000";
 const DEX18 = 10**18 
 const DEX9 = 10**9 
@@ -97,38 +102,30 @@ window.onload = function(){
 	}
 }
     
-function modalOn(_target) {
+async function modalOn(_target) {
 	target = _target
-	tokenList()
+	showLoading();
+	await tokenList()
+	hideLoading();
 	modalShow()
 }
 
 async function tokenList(){
-	showLoading();
 	let tokenList = "";
+	const filter = document.getElementById("filter").value;
 	
 	for(token of tokenDatas){
-		const filter = document.getElementById("filter").value;
 		if(filter && ( !token.symbol.includes(filter) && !token.name.includes(filter))){
 			continue;
 		}
 		
-		let balance = 0;
-		const stToken = await pool["contract"].methods.stakedOf(token.address).call()
- 		if(stToken != emptyAddr){
- 			const tokenContract = new web3.eth.Contract(tokenAbi,token.address)
- 			const stTokenContract = new web3.eth.Contract(tokenAbi,stToken)
- 	 		const stBal = await stTokenContract.methods.balanceOf(accountAddr).call() / DEX18
- 	 		const totalSupply = await stTokenContract.methods.totalSupply().call()
-			const totalDeposited = await tokenContract.methods.balanceOf(stToken).call()
-			balance = (stBal * totalDeposited / totalSupply).toFixed(4)
- 		}
+		const tokenInfo = await getTokenInfo(token)
+		
  		const image = token.image ? token.image : "../img/white.webp"
 
- 		tokenList += tokenItem(token.symbol, image, token.name, balance)
+ 		tokenList += tokenItem(token.symbol, image, token.name, tokenInfo["deposited"])
  	}
 	document.getElementById("tokenListBox").innerHTML = tokenList;
-	hideLoading();
 }
 
 async function choiceToken(symbol){
@@ -137,24 +134,9 @@ async function choiceToken(symbol){
  		if(token.symbol != symbol){
  			continue;
  		}
- 		
- 		const targetToken = {"address":token.address};
- 		
- 		document.getElementById('symbol_'+target).innerHTML = targetToken["symbol"] = symbol;
- 		
- 		targetToken["stAddress"] = await pool["contract"].methods.stakedOf(targetToken["address"]).call()
- 		if(targetToken["stAddress"] != emptyAddr){
- 			targetToken["contract"] = new web3.eth.Contract(tokenAbi,targetToken["address"])
- 			targetToken["stContract"] = new web3.eth.Contract(tokenAbi,targetToken["stAddress"])
- 			targetToken["stBalance"] = await targetToken["stContract"].methods.balanceOf(accountAddr).call() 
- 	 		targetToken["totalSupply"] = await targetToken["stContract"].methods.totalSupply().call()
-			targetToken["totalDeposited"] = await targetToken["contract"].methods.balanceOf(targetToken["stAddress"]).call()
-			balance = (targetToken["stBalance"] / DEX18 * targetToken["totalDeposited"] / targetToken["totalSupply"]).toFixed(4)
- 	 		document.getElementById('deposited_'+target).innerHTML= balance;	
- 		}else{
- 			document.getElementById('deposited_'+target).innerHTML=0;
- 		}
- 		curtoken[target] = targetToken;
+ 		document.getElementById('symbol_'+target).innerHTML = symbol;
+ 		curtoken[target] = await getTokenInfo(token);
+ 		document.getElementById('deposited_'+target).innerHTML = curtoken[target]["deposited"] 
  		break;
  	}
  	
@@ -163,6 +145,24 @@ async function choiceToken(symbol){
 	modalOff()
 	
 	await checkPair()
+}
+
+async function getTokenInfo(token){
+	const targetToken = {"address":token.address};
+	targetToken["symbol"] = token.symbol
+	targetToken["stAddress"] = await pool["contract"].methods.stakedOf(targetToken["address"]).call()
+	if(targetToken["stAddress"] != emptyAddr){
+		targetToken["contract"] = new web3.eth.Contract(tokenAbi,targetToken["address"])
+		targetToken["stContract"] = new web3.eth.Contract(tokenAbi,targetToken["stAddress"])
+		targetToken["stBalance"] = await targetToken["stContract"].methods.balanceOf(accountAddr).call();
+ 		const { minted, reserved } = await pool["contract"].methods.mintedByReserved(token.address).call();
+ 		targetToken["totalSupply"] = minted;
+ 		targetToken["totalDeposited"] = reserved; 
+ 		targetToken["deposited"] = (targetToken["stBalance"] / DEX18 * targetToken["totalDeposited"] / targetToken["totalSupply"]).toFixed(4)
+	}else{
+		targetToken["deposited"] = 0;
+	}
+	return targetToken;
 }
 
 async function checkPair(){
@@ -186,7 +186,7 @@ async function checkPair(){
 	pair["contract"] = new web3.eth.Contract(pairAbi,pair["address"])
 	const { 0:amountA, 1:amountB } = await pair["contract"].methods.getReserves().call()
 	
-	if( curtoken["A"]['address'] < curtoken["B"]['address'] ){
+	if( curtoken["A"]['stAddress'] < curtoken["B"]['stAddress'] ){
 		curtoken["A"]["reserved"] = amountA;
 		curtoken["B"]["reserved"] = amountB;
 	}else{
@@ -194,41 +194,79 @@ async function checkPair(){
 		curtoken["B"]["reserved"] = amountA;
 	}
 	document.getElementById("reservLeftToken").innerHTML= curtoken["A"]["symbol"] 
-	document.getElementById("reservLeftAmount").innerHTML=(curtoken["A"]["reserved"] / DEX18).toFixed(4)
+	document.getElementById("reservLeftAmount").innerHTML=(curtoken["A"]["reserved"] * curtoken["A"]["totalDeposited"] / curtoken["A"]["totalSupply"] / DEX18).toFixed(4)
 	document.getElementById("reservRightToken").innerHTML= curtoken["B"]["symbol"]
-	document.getElementById("reservRightAmount").innerHTML=(curtoken["B"]["reserved"] / DEX18).toFixed(4)
+	document.getElementById("reservRightAmount").innerHTML=(curtoken["B"]["reserved"] * curtoken["B"]["totalDeposited"] / curtoken["B"]["totalSupply"] / DEX18).toFixed(4)
 	
 }
  
 async function checkOpp(_target){
-	const checkeBox = document.getElementById("useRatio").checked
-	
-	if(pair["address"] == emptyAddr || !checkeBox){
-		return
-	}
-
-	const opp = _target == "A" ? "B" : "A";
+	/* const checkBox = document.getElementById("useRatio").checked */
 	
 	const input = document.getElementById("input_"+_target).value;
 	
 	const stInput = input * curtoken[_target]["totalSupply"] / curtoken[_target]["totalDeposited"];
-	
-	const stOutput = stInput * curtoken[opp]["reserved"] / curtoken[_target]["reserved"];
-	
-	const output = stOutput * curtoken[opp]["totalDeposited"] / curtoken[opp]["totalSupply"];
-	
-	document.getElementById("input_"+opp).value = output;
 
-	document.getElementById('action').classList.remove('disable')	
+	const opp = _target == "A" ? "B" : "A";
+	
+	if(pair["address"] != emptyAddr /* && checkBox */){
+		const stOutput = stInput * curtoken[opp]["reserved"] / curtoken[_target]["reserved"];
+		
+		const output = stOutput * curtoken[opp]["totalDeposited"] / curtoken[opp]["totalSupply"];
+		
+		document.getElementById("input_"+opp).value = output;
+	}
+	
+	document.getElementById('action').classList.remove('disable')
+	
+	txFee()
+}
+
+async function txFee(){
+	
+	const amountA = document.getElementById("input_A").value * curtoken["A"]["totalSupply"] / curtoken["A"]["totalDeposited"] * DEX18
+	const amountB = document.getElementById("input_B").value * curtoken["B"]["totalSupply"] / curtoken["B"]["totalDeposited"] * DEX18 
+	
+	if(amountA <= 0 || amountB <=0){
+		return
+	}
+	
+	const baseFee = await web3.eth.getBlock("latest").then((block) => {return Number(block.baseFeePerGas)})
+	
+	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then(getPriorityByFeehistory);
+	
+	let units = 0
+	
+	units = await pool["contract"].methods.addLiquidity(
+		curtoken["A"]["stAddress"],
+		curtoken["B"]["stAddress"],
+		String(amountA),
+		String(amountB)
+	).estimateGas({from:accountAddr});
+	
+	if(units < 21000){
+		units = 21000
+	}
+	txOption = {
+		from : accountAddr,
+		maxPriorityFeePerGas : priorityFee,
+		maxFeePerGas : baseFee + priorityFee,
+		gasLimit : units > 21000 ? units : 21000
+	}	
+	document.getElementById("fee").innerHTML = ((baseFee + priorityFee) * units / DEX18).toFixed(4)
 }
  
-async function addLiquidity( ){
+async function addLiquidity(){
 	await pool["contract"].methods.addLiquidity(
-		curtoken["A"]["address"],
-		curtoken["B"]["address"],
-		String(document.getElementById("input_A").value * DEX18),
-		String(document.getElementById("input_B").value * DEX18)
-	).send({from:accountAddr});
+		curtoken["A"]["stAddress"],
+		curtoken["B"]["stAddress"],
+		String(document.getElementById("input_A").value * curtoken["A"]["totalSupply"] / curtoken["A"]["totalDeposited"] * DEX18),
+		String(document.getElementById("input_B").value * curtoken["B"]["totalSupply"] / curtoken["B"]["totalDeposited"] * DEX18)
+	).send(txOption);
+	target = "A"
+	await choiceToken(curtoken["A"]["symbol"])
+	target = "B"
+	await choiceToken(curtoken["B"]["symbol"])
 }
  
 async function findPair(_tA, _tB){

@@ -29,6 +29,10 @@
 				<div>Amount</div>
 				<input id="amount" type="number" oninput="checkAllowance()" value="0.0"/>
 			</div>
+			<div id="approvedBox">
+				<div>Approved</div>
+				<input id="approved" type="number" value="0.0" readonly="readonly"/>
+			</div>
 		</div>
 		<div class="info">
 			<div class="fee_box">transaction fee</div>
@@ -51,7 +55,7 @@ let accountAddr;
 const emptyAddr = "0x0000000000000000000000000000000000000000";
 let txOption;
 const curtoken={};
-const pool = {"address":"0x94945D39a0db93b01fc108012778CEC79507f49b"};
+const pool = {"address":"0x523857C2136750432D05Cae33a17714f302Be86e"};
 const DEX18 = 10**18 
 const DEX9 = 10**9 
 
@@ -98,30 +102,31 @@ async function tokenList(){
 	document.getElementById("tokenListBox").innerHTML = tokenList
  }
  
- async function choiceToken(symbol){
+async function choiceToken(symbol){
 
- 	for(token of tokenDatas){
- 		if(token.symbol != symbol){
- 			continue;
- 		}
- 		curtoken["address"] = token.address;
- 		document.getElementById('tokenInButton').innerHTML = curtoken["symbol"] = symbol;
- 		curtoken["contract"] = new web3.eth.Contract(tokenAbi,curtoken["address"])
- 		curtoken["balance"] = await curtoken["contract"].methods.balanceOf(accountAddr).call()
- 		document.getElementById('balance').innerHTML = ( curtoken["balance"] / DEX18).toFixed(4)
- 		curtoken["stAddress"] = await pool["contract"].methods.stakedOf(curtoken["address"]).call()
- 		if(curtoken["stAddress"] != emptyAddr){
- 			curtoken["stContract"] = new web3.eth.Contract(tokenAbi,curtoken["stAddress"])
- 			curtoken["stBalance"] = await curtoken["stContract"].methods.balanceOf(accountAddr).call() 
- 	 		document.getElementById('deposited').innerHTML= await convertStToOrg();	
- 		}else{
- 			document.getElementById('deposited').innerHTML=0;
- 		}
- 		modalOff()
- 		checkAllowance()
- 		break;
- 	}
- }
+	for(token of tokenDatas){
+		if(token.symbol != symbol){
+			continue;
+		}
+		curtoken["address"] = token.address;
+		document.getElementById('tokenInButton').innerHTML = curtoken["symbol"] = symbol;
+		curtoken["contract"] = new web3.eth.Contract(tokenAbi,curtoken["address"])
+		curtoken["balance"] = await curtoken["contract"].methods.balanceOf(accountAddr).call()
+		document.getElementById('balance').innerHTML = ( curtoken["balance"] / DEX18).toFixed(4)
+		curtoken["stAddress"] = await pool["contract"].methods.stakedOf(curtoken["address"]).call()
+		if(curtoken["stAddress"] != emptyAddr){
+			curtoken["stContract"] = new web3.eth.Contract(tokenAbi,curtoken["stAddress"])
+			curtoken["stBalance"] = await curtoken["stContract"].methods.balanceOf(accountAddr).call() 
+			document.getElementById('deposited').innerHTML= await convertStToOrg();	
+		}else{
+			document.getElementById('deposited').innerHTML=0;
+		}
+		break;
+	}
+	
+	modalOff()
+	checkAllowance()
+}
  
  async function checkDeposit(amount){
 	 const approveState = document.getElementById('approve').style.display;
@@ -139,12 +144,18 @@ async function tokenList(){
 	 }
 	 
 	 const allowance = await curtoken["contract"].methods.allowance(accountAddr,pool["address"]).call()
+	 
+	 document.getElementById('approved').value = (allowance / DEX18).toFixed(4)
+	 
 	 const amount = mul18(document.getElementById('amount').value)
 	 if(amount > allowance){
 		 document.getElementById('approve').style.display = "flex";
+		 document.getElementById('approvedBox').style.display = "inline-block";
+		 txFee(amount,"approve")
 	 }else{
 		 document.getElementById('approve').style.display = "none";
-		 txFee(amount)
+		 document.getElementById('approvedBox').style.display = "none";
+		 txFee(amount,"stake")
 	 }
 	 checkDeposit(amount)
  }
@@ -158,30 +169,36 @@ async function approve(){
 async function deposit(){
 	const amount = String(mul18(document.getElementById('amount').value))
 	await pool["contract"].methods.stake(curtoken["address"],amount).send(txOption)
+	choiceToken(curtoken["symbol"])
 }
 
-async function txFee(amount){
+async function txFee(amount,type){
+	
+	if(amount <= 0){
+		return
+	}
 	
 	const baseFee = await web3.eth.getBlock("latest").then((block) => {return Number(block.baseFeePerGas)})
 	
 	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then(getPriorityByFeehistory);
+	const amountStr = String(amount)
 	
 	let units = 0
 	
-	if(document.getElementById('amount').value > 0){
-		
-		const amountStr = String(amount)
+	if(type == "stake"){	
 		units = await pool["contract"].methods.stake(curtoken["address"],amountStr).estimateGas({from:accountAddr})
-		if(units < 21000){
-			units = 21000
-		}
-		txOption = {
-			from : accountAddr,
-			maxPriorityFeePerGas : priorityFee,
-			maxFeePerGas : baseFee + priorityFee,
-			gasLimit : units > 21000 ? units : 21000
-		}	
+	}else if(type == "approve"){
+		units = await curtoken["contract"].methods.approve(pool["address"],amountStr).estimateGas({from:accountAddr})	
 	}
+	if(units < 21000){
+		units = 21000
+	}
+	txOption = {
+		from : accountAddr,
+		maxPriorityFeePerGas : priorityFee,
+		maxFeePerGas : baseFee + priorityFee,
+		gasLimit : units > 21000 ? units : 21000
+	}	
 	document.getElementById("fee").innerHTML = ((baseFee + priorityFee) * units / DEX18).toFixed(4)
 }
 

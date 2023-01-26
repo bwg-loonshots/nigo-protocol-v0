@@ -129,6 +129,16 @@ header {
 #main-wrapper > .disable > h1 {
 	color: #808080 !important;
 }
+
+#main-wrapper .fee_box {
+	margin-left: 1.5em;
+	margin-right: 1.5em;
+	text-align: right;
+	font-weight: bold; 
+	font-size: large;
+	color: gray;
+}
+
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
