@@ -9,6 +9,7 @@
 <script src="../../js/pairAbi.js"></script>
 <script src="./../js/stakeAbi.js"></script>
 <script src="./../js/modal.js"></script>
+<script src="./../js/loading.js"></script>
 <link rel="stylesheet" type="text/css" href="../css/addliquidity.css">
 <title>addLiquidity</title>
 </head>
@@ -60,6 +61,7 @@
 </div>
 
 <modal data-include="../include/modal.html" ></modal>
+<modal data-include="../include/loading.html" ></modal>
 
 <script type="text/javascript">
 let web3;
@@ -102,6 +104,7 @@ function modalOn(_target) {
 }
 
 async function tokenList(){
+	showLoading();
 	let tokenList = "";
 	
 	for(token of tokenDatas){
@@ -124,7 +127,8 @@ async function tokenList(){
 
  		tokenList += tokenItem(token.symbol, image, token.name, balance)
  	}
-	document.getElementById("tokenListBox").innerHTML = tokenList
+	document.getElementById("tokenListBox").innerHTML = tokenList;
+	hideLoading();
 }
 
 async function choiceToken(symbol){
