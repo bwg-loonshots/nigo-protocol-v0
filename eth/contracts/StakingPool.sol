@@ -37,14 +37,23 @@ contract StakingPool is IERC3156FlashLender{
         tokenPairRecipe = _tokenPairRecipe;
     }
 
+    // staked real token list
     function stakedTokens() external view returns(address[] memory) {
         return tokens;
     }
 
+    // staked pair list
     function stakedPairs() external view returns(address[] memory) {
         return pairs;
     }
 
+    // token balances => staking tokens total supply, reserved token balance
+    function mintedByReserved(address token) external view returns(uint minted, uint reserved) {
+        minted = IERC20(stakedOf[token]).totalSupply();
+        reserved = IERC20Stakeable(stakedOf[token]).reserved();
+    }
+
+    // delegate instantiation of staking token to token recipe contract(factory)
     function newStakingToken(address token) private returns(address stToken){
         (bool success, bytes memory data) = tokenRecipe.delegatecall(
             abi.encodeWithSignature("newStakingToken(address)", token)
@@ -53,6 +62,7 @@ contract StakingPool is IERC3156FlashLender{
         stToken = address(abi.decode(data, (IERC20Stakeable)));
     }
 
+    // delegate instantiation of staking pair to token pair recipe contract(factory)
     function newStakingTokenPair(address tokenA, address tokenB) private returns(address pair){
         (bool success, bytes memory data) = tokenPairRecipe.delegatecall(
             abi.encodeWithSignature("newStakingTokenPair(address,address)", tokenA, tokenB)
@@ -61,6 +71,7 @@ contract StakingPool is IERC3156FlashLender{
         pair = address(abi.decode(data, (IERC20PairStakeable)));
     }
 
+    // token staking : reserve real token and minting staking token
     function _stake(
         address from,
         address token, 
@@ -86,6 +97,7 @@ contract StakingPool is IERC3156FlashLender{
         return _stake(msg.sender, token, amount, msg.sender);
     }
 
+    // token unstaking : burn staking token, withdraw real token for staker
     function _unstake(
         address from, 
         address token, 
@@ -105,6 +117,8 @@ contract StakingPool is IERC3156FlashLender{
         return _unstake(msg.sender, token, staked, msg.sender);
     }
 
+    // ** staking token supports flashloan for real token and flashmint for staking token
+    // returns available amount for loan or minting
     function maxFlashLoan(address token) external override view returns (uint256){
 
         if(isStToken[token]) {
@@ -116,6 +130,7 @@ contract StakingPool is IERC3156FlashLender{
         
     }
 
+    // flash fee : amount * fee rate that staking token contract setted fee( 1 = 0.01%, 30 = 0.3%)
     function flashFee(address token, uint256 amount) external override view returns (uint256) {
 
         if(isStToken[token]) {
@@ -128,6 +143,7 @@ contract StakingPool is IERC3156FlashLender{
 
     }
 
+    // flashloan by ERC3156
     function flashLoan(
         IERC3156FlashBorrower receiver,
         address token,
@@ -144,24 +160,24 @@ contract StakingPool is IERC3156FlashLender{
 
     }
 
+    // tokens orderd by address hash value (ex : 0x01, 0x02)
     function tokenOrder(address tokenA, address tokenB) private pure returns(address, address) {
         return tokenA < tokenB ? 
             (tokenA, tokenB) : (tokenB, tokenA);
     }
 
+    // add liquidity for AMM protocol. pair token will be dropped to LP(liquidity provider)
+    // tokan A * token B = K
     function _addPairLiquidity(
         address from,
-        address _tokenA,
-        address _tokenB,
+        address tokenA,
+        address tokenB,
         uint _amountA,
         uint _amountB,
+        uint minA,
+        uint minB,
         address to
     ) internal returns(address pair, uint liquidity) {
-        
-        (address tokenA, address tokenB, uint amountA,uint amountB) =
-             _tokenA < _tokenB ? 
-            (_tokenA, _tokenB, _amountA, _amountB) : 
-            (_tokenB, _tokenA, _amountB, _amountA);
 
         pair = pairOf[tokenA][tokenB];
 
@@ -172,6 +188,8 @@ contract StakingPool is IERC3156FlashLender{
             isPair[pair] = true;
             pairs.push(pair);
         }
+        
+        (uint amountA, uint amountB) = _optimizePairAmounts(_amountA, _amountB, minA, minB, pair);
 
         tokenA._transferFrom(from, pair, amountA);
         tokenB._transferFrom(from, pair, amountB);
@@ -180,6 +198,34 @@ contract StakingPool is IERC3156FlashLender{
 
     }
 
+    function _optimizePairAmounts(
+        uint _amountA, 
+        uint _amountB, 
+        uint minA, 
+        uint minB, 
+        address pair
+    ) internal view returns(uint amountA, uint amountB) {
+
+        (uint reservedA, uint reservedB) = IERC20PairStakeable(pair).getReserves();
+        
+        if(reservedA == 0 && reservedB == 0) {
+            amountA = _amountA;
+            amountB = _amountB;
+        } else {
+            amountB = _amountA * reservedB / reservedA;
+            if( amountB <= _amountB) {
+                require(amountB >= minB, "nigo: insufficient amount b");
+                amountA = _amountA;
+            } else {
+                amountA = reservedA * _amountB / reservedB;
+                assert(amountA <= _amountA);
+                require(amountA >= minA, "nigo: insufficient amount a");
+                amountB = _amountB;
+            }
+        }        
+    }
+
+    // approve pair token from staker to contract, reserved token A, B will be withdrawed for staker 
     function _removePairLiquidity(
         address from,
         address _tokenA,
@@ -197,6 +243,7 @@ contract StakingPool is IERC3156FlashLender{
 
     }
 
+    // swap tokenIn to other side token of pair
     function _swap(
         address from,
         address tokenIn,
@@ -215,11 +262,21 @@ contract StakingPool is IERC3156FlashLender{
     }
 
     function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountA,
-        uint amountB
+        address _tokenA,
+        address _tokenB,
+        uint _amountA,
+        uint _amountB,
+        uint _minA,
+        uint _minB
     ) external returns(address pair, uint liquidity) {
+        
+        (
+            address tokenA, address tokenB, 
+            uint amountA,uint amountB,
+            uint minA, uint minB) =
+             _tokenA < _tokenB ? 
+            (_tokenA, _tokenB, _amountA, _amountB, _minA, _minB) : 
+            (_tokenB, _tokenA, _amountB, _amountA, _minB, _minA);
 
         if(isStToken[tokenA]) {
             IERC20Stakeable(tokenA).approveFrom(msg.sender, address(this), amountA);
@@ -234,7 +291,9 @@ contract StakingPool is IERC3156FlashLender{
             tokenA, 
             tokenB, 
             amountA, 
-            amountB, 
+            amountB,
+            minA,
+            minB,
             msg.sender);
     }
 

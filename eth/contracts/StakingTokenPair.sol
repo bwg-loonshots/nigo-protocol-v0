@@ -30,7 +30,7 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
         creator = msg.sender;
     }
 
-    function getReserves() public view returns(uint256, uint256) {
+    function getReserves() external override view returns(uint256, uint256) {
         return (reservedA, reservedB);
     }
 
@@ -65,7 +65,7 @@ contract StakingTokenPair is MintableToken, IERC20PairStakeable {
         if(totalSupply == 0) {
             liquidity = amountA.mul(amountB).sqrt();
         } else {
-            liquidity = amountA.mul(totalSupply) / reservedA;
+            liquidity = (amountA.mul(totalSupply) / reservedA).min(amountB.mul(totalSupply) / reservedB);
         }
 
         _mint(from, liquidity);
