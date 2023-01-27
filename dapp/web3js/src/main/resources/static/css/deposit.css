@@ -73,15 +73,32 @@ header {
 	font-weight: bold; 
 	font-size: large;
 }
+
 #main-wrapper .info > #amountBox {
 	margin: 1em;
 	width: 100%;
 	font-size: large;
 }
 
-#main-wrapper .token  #amount {
+#main-wrapper .info  #amount {
+	width: 98.5%;
+	font-size: large;
+}
+
+#main-wrapper .info > #approvedBox {
+	margin: 1em;
 	width: 100%;
 	font-size: large;
+	color: #ff80ff;
+	display:none;
+}
+
+#main-wrapper .info  #approved {
+	width: 100%;
+	font-size: large;
+	color: #ff80ff;
+	border-style:none;
+	outline-style: none;
 }
 
 #main-wrapper #approve {

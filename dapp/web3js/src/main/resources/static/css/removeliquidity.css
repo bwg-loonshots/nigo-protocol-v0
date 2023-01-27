@@ -35,12 +35,6 @@ header {
 	font-family: fantasy;
 }
 
-#main-wrapper > #head > #headRight{
-	float: right; 
-	margin-right: 2em;
-	font-family: monospace;
-}
-
 #main-wrapper > .token {
 	margin: 0.5em 1em;
 	height : 120px;
@@ -51,27 +45,39 @@ header {
 	align-items: center;
 	background-color: white;
 }
-#main-wrapper > .info {
+#main-wrapper > .infoBox {
 	margin: 0.5em 1em;
-	height : 80px;
+	height : 210px;
 	border-style: outset;
 	border-radius: 2em;
-	display: none;
+	background-color: white;
+	display: flex;
+	flex-direction: column; 
+}
+#main-wrapper > .infoBox > .info{
+	flex-grow: 1;
+	display: flex;
 	justify-content:space-between;
 	align-items: center;
-	background-color: white;
+	margin: 0em 1em;
 }
 
-#main-wrapper > .token > input{
+#main-wrapper > .infoBox > .paired{
+	justify-content:flex-end;
+	border-bottom: 1px solid #BBBBBB;
+}
+
+#main-wrapper > .token input{
 	font-size:xx-large;
-	margin-left: 1em;
 	border: 0;
-	width: 60%;
+	width: 250px;
+	text-align:right;
 }
 #main-wrapper > .token > .tokenChoice {
 	margin-right: 1em;
 }
-#main-wrapper > .token .searchToken {
+#main-wrapper > .token .searchPair {
+	margin-left: 1em;
 	font-size:x-large;
 	padding: 0.5em;
   	border-radius: 2em;
@@ -83,22 +89,6 @@ header {
 	color:#BBBBBB;
 	font-weight: bold; 
 	font-size: small;
-}
-
-#main-wrapper #equality {
-	margin:auto;
-	width:2em;
-	height:2em;
-	text-align:center;
-	line-height:2em;
-	border:1;
-	border-radius:50%;
-	background-color:gray;
-	position: absolute;
-	z-index: 1;
-	left:49%;
-	top:14em;
-	font-weight: bold;
 }
 
 #main-wrapper #liquidity > .reserve {
@@ -130,9 +120,16 @@ header {
 	color: #808080 !important;
 }
 
+#main-wrapper .amount_box {
+	text-align: right;
+	font-weight: bold; 
+	font-size: large;
+	color: gray;
+}
+
 #main-wrapper .fee_box {
-	margin-left: 1.5em;
-	margin-right: 1.5em;
+	margin-left: 1em;
+	margin-right: 1em;
 	text-align: right;
 	font-weight: bold; 
 	font-size: large;

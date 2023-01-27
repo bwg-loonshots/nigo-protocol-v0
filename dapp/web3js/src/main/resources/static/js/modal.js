@@ -30,3 +30,15 @@ function tokenItem(symbol,image,name,balance){
 		+ "</div> </li>";
 	return item;
 }
+function pairItem(symbol,name,balance){
+	let item = "<li class=\"token\" onclick=\"choiceToken('" 
+ 		+ symbol
+ 		+ "')\"> <div class=\"tokenInfo\"> <div class=\"tokenSymbol\">"
+ 		+ symbol
+ 		+"</div> <div class=\"tokenName\">"
+		+ name
+		+ "</div> </div> <div class=\"tokenBalance\">"
+		+ balance
+		+ "</div> </li>";
+	return item;
+}

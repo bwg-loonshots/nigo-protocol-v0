@@ -26,4 +26,9 @@ public class StakeController {
 		return "stake/addliquidity.html";
 	}
 	
+	@GetMapping("/removeliquidity")
+	public String removeliquidity() {
+		return "stake/removeliquidity.html";
+	}
+	
 }
