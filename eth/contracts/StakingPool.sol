@@ -174,13 +174,18 @@ contract StakingPool is IERC3156FlashLender{
         address _tokenB,
         uint _amountA,
         uint _amountB,
+        uint _minA,
+        uint _minB,
         address to
     ) internal returns(address pair, uint liquidity) {
         
-        (address tokenA, address tokenB, uint amountA,uint amountB) =
+        (
+            address tokenA, address tokenB, 
+            uint amountA,uint amountB,
+            uint minA, uint minB) =
              _tokenA < _tokenB ? 
-            (_tokenA, _tokenB, _amountA, _amountB) : 
-            (_tokenB, _tokenA, _amountB, _amountA);
+            (_tokenA, _tokenB, _amountA, _amountB, _minA, _minB) : 
+            (_tokenB, _tokenA, _amountB, _amountA, _minB, _minA);
 
         pair = pairOf[tokenA][tokenB];
 
@@ -192,7 +197,7 @@ contract StakingPool is IERC3156FlashLender{
             pairs.push(pair);
         }
 
-        // TODO optimize amount ratio for arbitrage
+        (amountA, amountB) = _optimizePairAmounts(amountA, amountB, minA, minB, pair);
 
         tokenA._transferFrom(from, pair, amountA);
         tokenB._transferFrom(from, pair, amountB);
@@ -268,7 +273,9 @@ contract StakingPool is IERC3156FlashLender{
         address tokenA,
         address tokenB,
         uint amountA,
-        uint amountB
+        uint amountB,
+        uint minA,
+        uint minB
     ) external returns(address pair, uint liquidity) {
 
         if(isStToken[tokenA]) {
@@ -284,7 +291,9 @@ contract StakingPool is IERC3156FlashLender{
             tokenA, 
             tokenB, 
             amountA, 
-            amountB, 
+            amountB,
+            minA,
+            minB,
             msg.sender);
     }
 
