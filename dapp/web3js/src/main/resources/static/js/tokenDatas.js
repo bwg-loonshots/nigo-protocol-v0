@@ -18,3 +18,5 @@ const tokenDatas = [
 		image : ""
 	},
 ]
+
+const stakingPoolAddress = "0xFf14844Aa7C175a97670604Ec6cC22736c0e569F";

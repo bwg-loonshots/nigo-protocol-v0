@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="./../js/tool.js"></script>
+<script src="./../js/include.js"></script>
+<script src="./../js/tokenDatas.js"></script>
+<script src="../../js/tokenAbi.js"></script>
+<script src="../../js/pairAbi.js"></script>
+<script src="./../js/stakeAbi.js"></script>
+<script src="./../js/modal.js"></script>
+<script src="./../js/loading.js"></script>
+<link rel="stylesheet" type="text/css" href="../css/removeliquidity.css">
+<title>removeLiquidity</title>
+</head>
+<body>
+<div id=page-wrapper>
+	<header data-include="../include/header.html"></header>
+	<div id="main-wrapper">
+		<div id="head">remove Liquidity</div>
+		<div id="pair" class="token">
+ 			<button id="symbol_pair" class="searchPair" onclick="modalOn()">PairList</button>
+			<div class="tokenChoice">
+				<input id="input_pair" type="number" oninput="checkOpp()" value="0.0"/>				
+				<div class="deposited_box">own liquidity : <span id="deposited_pair">0</span></div>
+			</div>
+		</div>
+		<div class="infoBox">
+			<div class="info paired">
+				<div id="amount_A" class="amount_box">0.0</div>
+				<div id="token_A" class="fee_box">test</div>
+			</div>
+			<div class="info paired">
+				<div id="amount_B" class="amount_box">0.0</div>
+				<div id="token_B" class="fee_box">test</div>
+			</div>
+			<div class="info">
+				<div class="fee_box">transaction fee</div>
+				<div class="fee_box"><span id="fee">0</span> ETH</div>
+			</div>
+		</div>
+		<div id="empty"></div>
+		<div id="action" class="token disable" onclick="removeLiquidity()">
+			<h1>remove Liquidity</h1>
+		</div>
+	</div>
+</div>
+
+<modal data-include="../include/modal.html" ></modal>
+<modal data-include="../include/loading.html" ></modal>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+let pair;
+let txOption;
+const pairDatas = [];
+const pool = {"address":"0x523857C2136750432D05Cae33a17714f302Be86e"};
+const emptyAddr = "0x0000000000000000000000000000000000000000";
+const DEX18 = 10**18 
+const DEX9 = 10**9 
+
+async function connect(){
+	try{
+		const address = await web3.eth.requestAccounts()
+		accountAddr = address[0]
+		document.getElementById('connect').innerHTML = accountAddr.slice(0,7) + '...'
+		pool["contract"] = new web3.eth.Contract(stakingPoolAbi,pool["address"])
+	}catch(e){
+		alert('fail to request account')
+		return
+	}
+}
+
+async function getPairDatas(){
+	const pairArr = await pool["contract"].methods.stakedPairs().call()
+	for(pairAddr of pairArr){
+		const tempPair = {address:pairAddr};
+		tempPair["contract"] = new web3.eth.Contract(pairAbi, tempPair["address"]);
+		tempPair["name"] = await tempPair["contract"].methods.name().call();
+		tempPair["nick"] = tempPair["name"].replace("st",'').replace("-st",'-')
+		pairDatas.push(tempPair)
+	}
+}
+
+window.onload = async function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('connect').innerHTML='connect wallet'
+		await connect()
+		await getPairDatas()
+	}else{
+		document.getElementById('connect').innerHTML='메타마스크가 없습니다'	
+	}
+}
+    
+async function modalOn() {
+	showLoading();
+	await tokenList()
+	hideLoading();
+	modalShow()
+}
+
+async function tokenList(){
+	let tokenList = "";
+	const filter = document.getElementById("filter").value;
+	
+	for(pairData of pairDatas){
+		if(filter && ( !pairData.nick.includes(filter) && !pairData.name.includes(filter))){
+			continue;
+		}
+ 		const liquid = await pairData["contract"].methods.balanceOf(accountAddr).call()
+
+ 		tokenList += pairItem(pairData.nick, pairData.name, liquid/DEX18)
+ 	}
+	document.getElementById("tokenListBox").innerHTML = tokenList;
+}
+
+async function choiceToken(nick){
+	showLoading();
+ 	for(pairData of pairDatas){
+ 		if(pairData.nick != nick){
+ 			continue;
+ 		}
+ 		document.getElementById('symbol_pair').innerHTML = nick;
+ 		pair = await getPairInfo(pairData);
+ 		document.getElementById('deposited_pair').innerHTML = pair["liquidity"] / DEX18 ;
+ 		document.getElementById('input_pair').value = pair["liquidity"] / DEX18
+ 		for(token of ["A","B"]){
+ 			document.getElementById('token_'+token).innerHTML = pair[token]["symbol"] ;	
+ 		}
+ 		
+ 		break;
+ 	}
+ 	
+ 	target="";
+
+	hideLoading();	
+	modalOff()
+	
+	checkOpp()
+}
+
+async function getPairInfo(pair){
+	pair["liquidity"] = await pair["contract"].methods.balanceOf(accountAddr).call()
+	pair["totalSupply"] = await pair["contract"].methods.totalSupply().call()
+	pair["A"]={};
+	pair["A"]["stAddress"] = await pair["contract"].methods.tokenA().call()
+	pair["A"]["stContract"] = new web3.eth.Contract(tokenAbi, pair["A"]["stAddress"]);
+	pair["A"]["address"] = await pair["A"]["stContract"].methods.token().call()
+	pair["A"]["contract"] = new web3.eth.Contract(tokenAbi, pair["A"]["address"]);
+	pair["A"]["symbol"] = await pair["A"]["contract"].methods.symbol().call()
+	pair["A"]["stakedBalance"] = await pair["A"]["stContract"].methods.balanceOf(pair["address"]).call();
+	pair["B"]={}
+	pair["B"]["stAddress"] = await pair["contract"].methods.tokenB().call()
+	pair["B"]["stContract"] = new web3.eth.Contract(tokenAbi, pair["B"]["stAddress"]);
+	pair["B"]["address"] = await pair["B"]["stContract"].methods.token().call()
+	pair["B"]["contract"] = new web3.eth.Contract(tokenAbi, pair["B"]["address"]);
+	pair["B"]["symbol"] = await pair["B"]["contract"].methods.symbol().call()
+	pair["B"]["stakedBalance"] = await pair["B"]["stContract"].methods.balanceOf(pair["address"]).call();
+	return pair;
+}
+ 
+async function checkOpp(){
+	
+	const input = document.getElementById("input_pair").value;
+	
+	for(token of ["A","B"]){
+		const output =  pair[token]["stakedBalance"] * mul18(input) / pair["totalSupply"];
+		document.getElementById('amount_'+token).innerHTML = (output / DEX18).toFixed(4) ;	
+	}
+
+	document.getElementById('action').classList.remove('disable')
+	
+	txFee()
+}
+
+async function txFee(){
+	
+	const baseFee = await web3.eth.getBlock("latest").then((block) => {return Number(block.baseFeePerGas)})
+	
+	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then(getPriorityByFeehistory);
+	
+	let units = 0
+	
+	units = await pool["contract"].methods.removeLiquidity(
+		pair["A"]["stAddress"],
+		pair["B"]["stAddress"],
+		String(mul18(document.getElementById("input_pair").value))
+	).estimateGas({from:accountAddr});
+	
+	if(units < 21000){
+		units = 21000
+	}
+	txOption = {
+		from : accountAddr,
+		maxPriorityFeePerGas : priorityFee,
+		maxFeePerGas : baseFee + priorityFee,
+		gasLimit : units > 21000 ? units : 21000
+	}	
+	document.getElementById("fee").innerHTML = ((baseFee + priorityFee) * units / DEX18).toFixed(4)
+}
+ 
+async function removeLiquidity(){
+	await pool["contract"].methods.removeLiquidity(
+			pair["A"]["stAddress"],
+			pair["B"]["stAddress"],
+			String(mul18(document.getElementById("input_pair").value))
+	).send(txOption);
+	await choiceToken(pair["nick"])
+}
+</script>
+</body>
+</html>

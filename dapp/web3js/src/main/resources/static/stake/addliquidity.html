@@ -20,10 +20,10 @@
 	<div id="main-wrapper">
 		<div id="head">
 			Add Liquidity
-			<!-- <div id="headRight">
+			<div id="headRight">
 				use current ratio
 				<input id="useRatio" type="checkbox" checked />
-			</div> -->
+			</div>
 		</div>
 		<div id="group_A" class="token">
 			<input id="input_A" type="number" oninput="checkOpp('A')" value="0.0"/>
@@ -75,7 +75,7 @@ const curtoken = {"A":{},"B":{}};
 let pair={};
 let txOption;
 let target;
-const pool = {"address":"0x523857C2136750432D05Cae33a17714f302Be86e"};
+const pool = {"address":stakingPoolAddress};
 const emptyAddr = "0x0000000000000000000000000000000000000000";
 const DEX18 = 10**18 
 const DEX9 = 10**9 
@@ -201,7 +201,7 @@ async function checkPair(){
 }
  
 async function checkOpp(_target){
-	/* const checkBox = document.getElementById("useRatio").checked */
+	const checkBox = document.getElementById("useRatio").checked
 	
 	const input = document.getElementById("input_"+_target).value;
 	
@@ -209,7 +209,7 @@ async function checkOpp(_target){
 
 	const opp = _target == "A" ? "B" : "A";
 	
-	if(pair["address"] != emptyAddr /* && checkBox */){
+	if(pair["address"] != emptyAddr && checkBox ){
 		const stOutput = stInput * curtoken[opp]["reserved"] / curtoken[_target]["reserved"];
 		
 		const output = stOutput * curtoken[opp]["totalDeposited"] / curtoken[opp]["totalSupply"];
@@ -241,7 +241,8 @@ async function txFee(){
 		curtoken["A"]["stAddress"],
 		curtoken["B"]["stAddress"],
 		String(amountA),
-		String(amountB)
+		String(amountB),
+		"0","0"
 	).estimateGas({from:accountAddr});
 	
 	if(units < 21000){
@@ -261,7 +262,8 @@ async function addLiquidity(){
 		curtoken["A"]["stAddress"],
 		curtoken["B"]["stAddress"],
 		String(document.getElementById("input_A").value * curtoken["A"]["totalSupply"] / curtoken["A"]["totalDeposited"] * DEX18),
-		String(document.getElementById("input_B").value * curtoken["B"]["totalSupply"] / curtoken["B"]["totalDeposited"] * DEX18)
+		String(document.getElementById("input_B").value * curtoken["B"]["totalSupply"] / curtoken["B"]["totalDeposited"] * DEX18),
+		"0","0"
 	).send(txOption);
 	target = "A"
 	await choiceToken(curtoken["A"]["symbol"])

@@ -54,7 +54,7 @@ const curtoken={"from":{},"to":{}};
 let txOption;
 let target;
 let pair={};
-const pool = {"address":"0x523857C2136750432D05Cae33a17714f302Be86e"};
+const pool = {"address":stakingPoolAddress};
 const emptyAddr = "0x0000000000000000000000000000000000000000";
 const DEX18 = 10**18 
 const DEX9 = 10**9 
@@ -166,6 +166,7 @@ async function checkPair(){
 		curtoken["from"]["reserved"] = amountB;
 		curtoken["to"]["reserved"] = amountA;
 	}
+	checkOpp( )
 }
  
 async function checkOpp( ){
@@ -210,11 +211,6 @@ async function txFee(amount){
 }
 
 function amountOutWithSwapFee(stInput){
-	console.log("test")
-	console.log(stInput)
-	console.log(curtoken["from"]["reserved"])
-	console.log(curtoken["to"]["reserved"])
-	console.log("test")
 	const amountInWithFee = stInput * 9970;
 	const numerator = amountInWithFee * curtoken["to"]["reserved"];
 	const denominator = curtoken["from"]["reserved"] * 10000 + amountInWithFee;
