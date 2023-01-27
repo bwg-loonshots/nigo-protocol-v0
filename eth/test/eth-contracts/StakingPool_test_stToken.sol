@@ -38,7 +38,7 @@ contract StakingPool_test_stToken is TokenTestable {
         tokenB.approve(address(pool), stAmount);
         address stTokenB = pool.stake(address(tokenB), stAmount);  
 
-        (,uint liquidity) = pool.addLiquidity(stTokenA, stTokenB, 10 * DEX18, 500 * DEX18);
+        (,uint liquidity) = pool.addLiquidity(stTokenA, stTokenB, 10 * DEX18, 500 * DEX18, 0, 0);
 
         pool.swap(stTokenA, stTokenB, 1 * DEX18);
 

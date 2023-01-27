@@ -170,22 +170,14 @@ contract StakingPool is IERC3156FlashLender{
     // tokan A * token B = K
     function _addPairLiquidity(
         address from,
-        address _tokenA,
-        address _tokenB,
+        address tokenA,
+        address tokenB,
         uint _amountA,
         uint _amountB,
-        uint _minA,
-        uint _minB,
+        uint minA,
+        uint minB,
         address to
     ) internal returns(address pair, uint liquidity) {
-        
-        (
-            address tokenA, address tokenB, 
-            uint amountA,uint amountB,
-            uint minA, uint minB) =
-             _tokenA < _tokenB ? 
-            (_tokenA, _tokenB, _amountA, _amountB, _minA, _minB) : 
-            (_tokenB, _tokenA, _amountB, _amountA, _minB, _minA);
 
         pair = pairOf[tokenA][tokenB];
 
@@ -196,8 +188,8 @@ contract StakingPool is IERC3156FlashLender{
             isPair[pair] = true;
             pairs.push(pair);
         }
-
-        (amountA, amountB) = _optimizePairAmounts(amountA, amountB, minA, minB, pair);
+        
+        (uint amountA, uint amountB) = _optimizePairAmounts(_amountA, _amountB, minA, minB, pair);
 
         tokenA._transferFrom(from, pair, amountA);
         tokenB._transferFrom(from, pair, amountB);
@@ -270,13 +262,21 @@ contract StakingPool is IERC3156FlashLender{
     }
 
     function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountA,
-        uint amountB,
-        uint minA,
-        uint minB
+        address _tokenA,
+        address _tokenB,
+        uint _amountA,
+        uint _amountB,
+        uint _minA,
+        uint _minB
     ) external returns(address pair, uint liquidity) {
+        
+        (
+            address tokenA, address tokenB, 
+            uint amountA,uint amountB,
+            uint minA, uint minB) =
+             _tokenA < _tokenB ? 
+            (_tokenA, _tokenB, _amountA, _amountB, _minA, _minB) : 
+            (_tokenB, _tokenA, _amountB, _amountA, _minB, _minA);
 
         if(isStToken[tokenA]) {
             IERC20Stakeable(tokenA).approveFrom(msg.sender, address(this), amountA);
