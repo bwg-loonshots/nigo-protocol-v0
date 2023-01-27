@@ -29,11 +29,11 @@
 		<div class="infoBox">
 			<div class="info paired">
 				<div id="amount_A" class="amount_box">0.0</div>
-				<div id="token_A" class="fee_box">test</div>
+				<div id="token_A" class="fee_box">Token</div>
 			</div>
 			<div class="info paired">
 				<div id="amount_B" class="amount_box">0.0</div>
-				<div id="token_B" class="fee_box">test</div>
+				<div id="token_B" class="fee_box">Token</div>
 			</div>
 			<div class="info">
 				<div class="fee_box">transaction fee</div>
@@ -55,8 +55,8 @@ let web3;
 let accountAddr;
 let pair;
 let txOption;
-const pairDatas = [];
-const pool = {"address":"0x523857C2136750432D05Cae33a17714f302Be86e"};
+let pairDatas = [];
+const pool = {"address":stakingPoolAddress};
 const emptyAddr = "0x0000000000000000000000000000000000000000";
 const DEX18 = 10**18 
 const DEX9 = 10**9 
@@ -75,13 +75,15 @@ async function connect(){
 
 async function getPairDatas(){
 	const pairArr = await pool["contract"].methods.stakedPairs().call()
+	const pairs = [];
 	for(pairAddr of pairArr){
 		const tempPair = {address:pairAddr};
 		tempPair["contract"] = new web3.eth.Contract(pairAbi, tempPair["address"]);
 		tempPair["name"] = await tempPair["contract"].methods.name().call();
 		tempPair["nick"] = tempPair["name"].replace("st",'').replace("-st",'-')
-		pairDatas.push(tempPair)
+		pairs.push(tempPair)
 	}
+	pairDatas = pairs;
 }
 
 window.onload = async function(){
@@ -105,14 +107,16 @@ async function modalOn() {
 async function tokenList(){
 	let tokenList = "";
 	const filter = document.getElementById("filter").value;
-	
+	if(pairDatas.length < 1){
+		await getPairDatas()
+	}
 	for(pairData of pairDatas){
 		if(filter && ( !pairData.nick.includes(filter) && !pairData.name.includes(filter))){
 			continue;
 		}
  		const liquid = await pairData["contract"].methods.balanceOf(accountAddr).call()
 
- 		tokenList += pairItem(pairData.nick, pairData.name, liquid/DEX18)
+ 		tokenList += pairItem(pairData.nick, pairData.name, (liquid/DEX18).toFixed(4))
  	}
 	document.getElementById("tokenListBox").innerHTML = tokenList;
 }
@@ -125,8 +129,9 @@ async function choiceToken(nick){
  		}
  		document.getElementById('symbol_pair').innerHTML = nick;
  		pair = await getPairInfo(pairData);
- 		document.getElementById('deposited_pair').innerHTML = pair["liquidity"] / DEX18 ;
- 		document.getElementById('input_pair').value = pair["liquidity"] / DEX18
+ 		const totalLiquidity = Math.floor(pair["liquidity"] / DEX18 * 10000) / 10000
+ 		document.getElementById('deposited_pair').innerHTML = totalLiquidity ;
+ 		document.getElementById('input_pair').value = totalLiquidity;
  		for(token of ["A","B"]){
  			document.getElementById('token_'+token).innerHTML = pair[token]["symbol"] ;	
  		}
@@ -142,24 +147,24 @@ async function choiceToken(nick){
 	checkOpp()
 }
 
-async function getPairInfo(pair){
-	pair["liquidity"] = await pair["contract"].methods.balanceOf(accountAddr).call()
-	pair["totalSupply"] = await pair["contract"].methods.totalSupply().call()
-	pair["A"]={};
-	pair["A"]["stAddress"] = await pair["contract"].methods.tokenA().call()
-	pair["A"]["stContract"] = new web3.eth.Contract(tokenAbi, pair["A"]["stAddress"]);
-	pair["A"]["address"] = await pair["A"]["stContract"].methods.token().call()
-	pair["A"]["contract"] = new web3.eth.Contract(tokenAbi, pair["A"]["address"]);
-	pair["A"]["symbol"] = await pair["A"]["contract"].methods.symbol().call()
-	pair["A"]["stakedBalance"] = await pair["A"]["stContract"].methods.balanceOf(pair["address"]).call();
-	pair["B"]={}
-	pair["B"]["stAddress"] = await pair["contract"].methods.tokenB().call()
-	pair["B"]["stContract"] = new web3.eth.Contract(tokenAbi, pair["B"]["stAddress"]);
-	pair["B"]["address"] = await pair["B"]["stContract"].methods.token().call()
-	pair["B"]["contract"] = new web3.eth.Contract(tokenAbi, pair["B"]["address"]);
-	pair["B"]["symbol"] = await pair["B"]["contract"].methods.symbol().call()
-	pair["B"]["stakedBalance"] = await pair["B"]["stContract"].methods.balanceOf(pair["address"]).call();
-	return pair;
+async function getPairInfo(pairInfo){
+	pairInfo["liquidity"] = await pairInfo["contract"].methods.balanceOf(accountAddr).call()
+	pairInfo["totalSupply"] = await pairInfo["contract"].methods.totalSupply().call()
+	pairInfo["A"]={"stAddress":await pairInfo["contract"].methods.tokenA().call()};
+	pairInfo["B"]={"stAddress":await pairInfo["contract"].methods.tokenB().call()};
+	for(token of ["A","B"]){
+		pairInfo[token]["stContract"] = new web3.eth.Contract(tokenAbi, pairInfo[token]["stAddress"]);
+		pairInfo[token]["address"] = await pairInfo[token]["stContract"].methods.token().call()
+		pairInfo[token]["contract"] = new web3.eth.Contract(tokenAbi, pairInfo[token]["address"]);
+		pairInfo[token]["symbol"] = await pairInfo[token]["contract"].methods.symbol().call()
+		pairInfo[token]["stakedBalance"] = await pairInfo[token]["stContract"].methods.balanceOf(pairInfo["address"]).call();
+		const { minted, reserved } = await pool["contract"].methods.mintedByReserved(pairInfo[token]["address"]).call();
+		pairInfo[token]["minted"] = minted;
+		pairInfo[token]["reserved"] = reserved;
+		console.log(pairInfo["A"])
+		console.log(pairInfo["B"])
+	}
+	return pairInfo;
 }
  
 async function checkOpp(){
@@ -167,7 +172,10 @@ async function checkOpp(){
 	const input = document.getElementById("input_pair").value;
 	
 	for(token of ["A","B"]){
-		const output =  pair[token]["stakedBalance"] * mul18(input) / pair["totalSupply"];
+		const stOutput =  pair[token]["stakedBalance"] * mul18(input) / pair["totalSupply"];
+		
+		const output = stOutput * pair[token]["reserved"] / pair[token]["minted"];
+		
 		document.getElementById('amount_'+token).innerHTML = (output / DEX18).toFixed(4) ;	
 	}
 

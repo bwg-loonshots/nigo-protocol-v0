@@ -31,4 +31,9 @@ public class StakeController {
 		return "stake/removeliquidity.html";
 	}
 	
+	@GetMapping("/withdraw")
+	public String withdraw() {
+		return "stake/withdraw.html";
+	}
+	
 }

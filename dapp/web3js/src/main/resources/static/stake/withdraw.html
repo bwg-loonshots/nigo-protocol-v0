@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="./../js/tool.js"></script>
+<script src="./../js/include.js"></script>
+<script src="./../js/tokenDatas.js"></script>
+<script src="./../js/tokenAbi.js"></script>
+<script src="./../js/stakeAbi.js"></script>
+<script src="./../js/modal.js"></script>
+<script src="./../js/loading.js"></script>
+<link rel="stylesheet" type="text/css" href="../css/deposit.css">
+<title>Withdraw</title>
+</head>
+<body>
+<div id=page-wrapper>
+	<header data-include="../include/header.html"></header>
+	<div id="main-wrapper">
+		<div id="head">Withdraw</div>
+		<div id="from" class="token">
+			<button id="tokenInButton" onclick="modalOn()">tokenList</button>
+			<div id=tokenIn>
+				<div class="balance_box">deposited : <span id="deposited">0</span></div>
+				<div class="balance_box">balance : <span id="balance">0</span></div>
+			</div>
+		</div>
+		<div class="info">
+			<div id="amountBox">
+				<div>Amount</div>
+				<input id="amount" type="number" oninput="checkDeposit()" value="0.0"/>
+			</div>
+		</div>
+		<div class="info">
+			<div class="fee_box">transaction fee</div>
+			<div class="fee_box"><span id="fee">0</span> ETH</div>
+		</div>
+		<div id="action" class="token disable" onclick="withdraw()">
+			<h1>Withdraw</h1>
+		</div>
+	</div>
+</div>
+
+<modal data-include="../include/modal.html" ></modal>
+<modal data-include="../include/loading.html" ></modal>
+
+<script type="text/javascript">
+let web3;
+let accountAddr;
+const emptyAddr = "0x0000000000000000000000000000000000000000";
+let txOption;
+let curtoken;
+const pool = {"address":stakingPoolAddress};
+const DEX18 = 10**18 
+const DEX9 = 10**9 
+
+async function connect(){
+	try{
+		const address = await web3.eth.requestAccounts()
+		accountAddr = address[0]
+		document.getElementById('connect').innerHTML = accountAddr.slice(0,7) + '...'
+		pool["contract"] = new web3.eth.Contract(stakingPoolAbi,pool["address"])
+	} catch(e){
+		alert('fail to request account')
+		return
+	} 
+}
+
+window.onload = function(){
+	if(window.ethereum){
+		web3 = new Web3(window.ethereum)
+		document.getElementById('connect').innerHTML='connect wallet'
+		connect()
+	}else{
+		document.getElementById('connect').innerHTML='메타마스크가 없습니다'	
+	}
+}  
+
+async function modalOn() {
+	showLoading();
+	await tokenList()
+	hideLoading();
+	modalShow()
+}
+ 	
+async function tokenList(){
+	let tokenList = "";
+	for(token of tokenDatas){
+		const filter = document.getElementById("filter").value;
+		if(filter && ( !token.symbol.includes(filter) && !token.name.includes(filter))){
+			continue;
+		}
+		
+		const tokenInfo = await getTokenInfo(token)
+		
+ 		const image = token.image ? token.image : "../img/white.webp"
+
+ 		tokenList += tokenItem(token.symbol, image, token.name, (tokenInfo["deposited"] / DEX18).toFixed(4))
+	}
+	document.getElementById("tokenListBox").innerHTML = tokenList
+}
+ 
+async function choiceToken(symbol){
+
+	for(token of tokenDatas){
+		if(token.symbol != symbol){
+			continue;
+		}
+
+		document.getElementById("tokenInButton").innerHTML = symbol;
+ 		curtoken = await getTokenInfo(token);
+ 		document.getElementById('deposited').innerHTML = (curtoken["deposited"] / DEX18).toFixed(4);
+ 		document.getElementById('balance').innerHTML = (curtoken["balance"] / DEX18).toFixed(4);
+		break;
+	}
+	
+	modalOff()
+	checkDeposit()
+}
+
+async function getTokenInfo(token){
+	const targetToken = {"address":token.address};
+	targetToken["symbol"] = token.symbol
+	targetToken["stAddress"] = await pool["contract"].methods.stakedOf(targetToken["address"]).call()
+	if(targetToken["stAddress"] != emptyAddr){
+		targetToken["contract"] = new web3.eth.Contract(tokenAbi,targetToken["address"])
+		targetToken["balance"] = await targetToken["contract"].methods.balanceOf(accountAddr).call();
+		targetToken["stContract"] = new web3.eth.Contract(tokenAbi,targetToken["stAddress"])
+		targetToken["stBalance"] = await targetToken["stContract"].methods.balanceOf(accountAddr).call();
+ 		const { minted, reserved } = await pool["contract"].methods.mintedByReserved(token.address).call();
+ 		targetToken["totalSupply"] = minted;
+ 		targetToken["totalDeposited"] = reserved; 
+ 		targetToken["deposited"] = targetToken["stBalance"] * targetToken["totalDeposited"] / targetToken["totalSupply"]
+	}else{
+		targetToken["deposited"] = 0;
+	}
+	return targetToken;
+}
+ 
+async function checkDeposit( ){
+	const amount = mul18(document.getElementById('amount').value);
+	if( amount > curtoken["deposited"] ){
+		document.getElementById('action').classList.add('disable')
+	}else{
+		document.getElementById('action').classList.remove('disable')
+		txFee(amount)
+	} 
+}
+ 
+async function withdraw(){
+	const amount = String(mul18(document.getElementById('amount').value))
+	await pool["contract"].methods.unstake(curtoken["stAddress"],amount).send(txOption)
+	choiceToken(curtoken["symbol"])
+}
+
+async function txFee(amount){
+	
+	if(amount <= 0){
+		return
+	}
+	
+	const baseFee = await web3.eth.getBlock("latest").then((block) => {return Number(block.baseFeePerGas)})
+	
+	const priorityFee = await web3.eth.getFeeHistory(1, "latest", [50]).then(getPriorityByFeehistory);
+	
+	const amountStr = String(amount)
+	
+	let units = 0
+		
+	units = await pool["contract"].methods.unstake(curtoken["stAddress"],amountStr).estimateGas({from:accountAddr})
+	
+	if(units < 21000){
+		units = 21000
+	}
+	txOption = {
+		from : accountAddr,
+		maxPriorityFeePerGas : priorityFee,
+		maxFeePerGas : baseFee + priorityFee,
+		gasLimit : units > 21000 ? units : 21000
+	}	
+	document.getElementById("fee").innerHTML = ((baseFee + priorityFee) * units / DEX18).toFixed(4)
+}
+
+</script>
+</body>
+</html>
