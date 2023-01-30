@@ -26,7 +26,7 @@
 				<div class="deposited_box">deposited : <span id="deposited_from">0</span></div>
 			</div>
 		</div>
-		<div id="switch">V</div>
+		<div id="switch" onclick="switchToken()">V</div>
 		<div id="to" class="token">
 			<input id="output" type="number" value="0.0" disabled="disabled"/>
 			<div id=tokenOut>
@@ -108,7 +108,7 @@ async function tokenList(){
 	document.getElementById("tokenListBox").innerHTML = tokenList
 }
 
-async function choiceToken(symbol){
+async function choiceToken(symbol,isAuto){
 	
 	for(token of tokenDatas){
  		if(token.symbol != symbol){
@@ -121,6 +121,10 @@ async function choiceToken(symbol){
  	}
 	
 	target="";
+	
+	if(isAuto != undefined && isAuto == true ){
+		return;
+	}
 	 
 	modalOff()
 	
@@ -222,14 +226,26 @@ async function findPair(_tA, _tB){
 	return await pool["contract"].methods.pairOf(tA,tB).call();
 }
 
+
 async function swap(){
 	const amount = String(mul18(document.getElementById("input").value) * curtoken["from"]["totalSupply"] / curtoken["from"]["totalDeposited"])
 	await pool["contract"].methods.swap(curtoken["from"]["stAddress"],curtoken["to"]["stAddress"],amount).send(txOption);
 	target = "from"
-	await choiceToken(curtoken["from"]["symbol"])
+	await choiceToken(curtoken["from"]["symbol"],true)
 	target = "to"
 	await choiceToken(curtoken["to"]["symbol"])
 }
+
+async function switchToken(){
+	const symbol_to = curtoken["to"]["symbol"];
+	const symbol_from = curtoken["from"]["symbol"]; 
+
+	target = "from";
+	await choiceToken(symbol_to,true)
+	target = "to";
+	await choiceToken(symbol_from)
+}
+
 
 </script>
 </body>

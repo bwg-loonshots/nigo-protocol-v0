@@ -94,6 +94,7 @@ header {
 	z-index: 1;
 	left:49%;
 	top:14em;
+	cursor: pointer;
 }
 #main-wrapper .fee_box {
 	margin-left: 1.5em;
