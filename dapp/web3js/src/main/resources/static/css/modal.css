@@ -28,6 +28,14 @@
     top: -100px;
     padding: 10px;
 }
+
+@media (max-width:1000px){
+	#modal .modal-window {
+		width: 95%;
+   		top: 0px;
+	}
+}
+
 #modal .title {
     padding-left: 10px;
     display: inline;
@@ -79,11 +87,12 @@
 }
 
 #modal .token .tokenImg{
-	width:30px;
+	width:45px;
 }
 
 #modal .token .tokenImg img{
-	width:25px;
+	width:35px;
+	height:35px;
 	border-radius: 50%;
 }
 
@@ -93,17 +102,17 @@
 
 #modal .token .tokenInfo .tokenSymbol{
 	text-shadow: 1px 1px black;
+	font-size: large;
 }
 
 #modal .token .tokenInfo .tokenName{
 	color: #BBBBBB;
-	font-size: smaller;
 }
 
 #modal .token .tokenBalance{
 	text-align:right;
 	flex-grow: 6;
-	font-size: large;
+	font-size: larger;
 }
 
 
