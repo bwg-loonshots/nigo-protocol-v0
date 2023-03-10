@@ -5,16 +5,20 @@ import "./interfaces/IERC721.sol";
 import "./interfaces/IERC721Receiver.sol";
 import "./libs/Address.sol";
 import "./libs/Strings.sol";
+import "./libs/Counters.sol";
 
 contract ERC721 is IERC721 {
     using Address for address;
     using Strings for uint256;
+    using Counters for Counters.Counter;
 
     string private _name;
 
     string private _symbol;
 
     string private _baseURI;
+
+    Counters.Counter private _tokenIdCounter;
 
     mapping(uint256 => address) private _owners;
 
@@ -36,7 +40,7 @@ contract ERC721 is IERC721 {
     }    
 
     /*
-    * view methods
+    * override methods
     */
 
     function name() external view override returns (string memory) {
@@ -104,6 +108,59 @@ contract ERC721 is IERC721 {
     }
 
     /*
+    * original method
+    */
+
+    function mint(address to) external {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(to, tokenId);
+    }
+
+    function _safeMint(address to, uint256 tokenId) internal {
+        _safeMint(to, tokenId, "");
+    }
+
+    function _safeMint(address to, uint256 tokenId, bytes memory data) internal {
+        _mint(to, tokenId);
+        require(
+            _checkOnERC721Received(address(0), to, tokenId, data),
+            "ERC721: transfer to non ERC721Receiver implementer"
+        );
+    }
+
+    function _mint(address to, uint tokenId) internal {
+        require(to != address(0), "ERC721: mint to the zero address");
+        require(!_exists(tokenId), "ERC721: token already minted");
+
+        unchecked {
+            _balances[to] += 1;
+        }
+
+        _owners[tokenId] = to;
+
+        emit Transfer(address(0),to,tokenId);
+    }
+
+    function burn(uint256 tokenId) external {
+        require(_isApprovedOrOwner(msg.sender, tokenId), "ERC721: caller is not token owner or approved");
+        _burn(tokenId);
+    }
+
+    function _burn(uint256 tokenId) internal {
+        address owner = ERC721.ownerOf(tokenId);
+
+        delete _tokenApprovals[tokenId];
+
+        unchecked {
+            _balances[owner] -= 1;
+        }
+        delete _owners[tokenId];
+
+        emit Transfer(owner, address(0), tokenId);
+    }
+
+    /*
     * internal methods
     */
 
@@ -136,8 +193,6 @@ contract ERC721 is IERC721 {
     function _transfer(address from, address to, uint256 tokenId ) internal {
         require(ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
         require(to != address(0), "ERC721: transfer to the zero address");
-
-        require(ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
 
         delete _tokenApprovals[tokenId];
 
