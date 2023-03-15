@@ -7,13 +7,6 @@ import "./NFTHolder.sol";
 contract ERC721_test {
 
     ERC721 collaction = new ERC721("nigoNFT","nigoNFT","http://localhost:8080/nft/metadata/");
-    NFTHolder Alice = new NFTHolder();
-    NFTHolder Bob = new NFTHolder();
-    NFTHolder Charlie = new NFTHolder();
-    
-    uint256 firstTokenId = 0;
-    uint256 secondTokenId = 1;
-    uint256 thirdTokenId = 2;
 
     function test() external{
 
@@ -31,6 +24,7 @@ contract ERC721_test {
     function testMint() internal{
 
         collaction.mint(msg.sender);
+        uint256 firstTokenId = 0;
 
         assert(collaction.balanceOf(msg.sender) == 1);
         assert(collaction.ownerOf(firstTokenId) == msg.sender);
@@ -38,7 +32,11 @@ contract ERC721_test {
 
     function testTransferByOwner() internal{
 
+        NFTHolder Alice = new NFTHolder();
+        NFTHolder Bob = new NFTHolder();
+
         collaction.mint(address(Alice));
+        uint256 secondTokenId = 1;
 
         assert(collaction.balanceOf(address(Alice)) == 1);
         assert(collaction.ownerOf(secondTokenId) == address(Alice));
@@ -51,41 +49,63 @@ contract ERC721_test {
     }
 
     function testTransferByApproved() internal{
+        
+        NFTHolder Alice = new NFTHolder();
+        NFTHolder Bob = new NFTHolder();
 
-        collaction.mint(address(Bob));
+        collaction.mint(address(Alice));
+        uint256 thirdTokenId = 2;
 
-        assert(collaction.balanceOf(address(Bob)) == 2);
-        assert(collaction.ownerOf(thirdTokenId) == address(Bob));
-
-        Bob.approveTo(address(collaction),address(Alice),thirdTokenId);
-
-        assert(collaction.getApproved(thirdTokenId) == address(Alice));
-
-        Alice.transferFrom(address(collaction),address(Bob),thirdTokenId);
-
-        assert(collaction.balanceOf(address(Bob)) == 1);
         assert(collaction.balanceOf(address(Alice)) == 1);
+        assert(collaction.balanceOf(address(Bob)) == 0);
         assert(collaction.ownerOf(thirdTokenId) == address(Alice));
+
+        Alice.approveTo(address(collaction),address(Bob),thirdTokenId);
+
+        assert(collaction.getApproved(thirdTokenId) == address(Bob));
+
+        Bob.transferFrom(address(collaction),address(Alice),thirdTokenId);
+
+        assert(collaction.balanceOf(address(Alice)) == 0);
+        assert(collaction.balanceOf(address(Bob)) == 1);
+        assert(collaction.ownerOf(thirdTokenId) == address(Bob));
     }
 
     function testOperator() internal{
 
-        Alice.operatorTo(address(collaction),address(Charlie),true);
-        
-        assert(collaction.isApprovedForAll(address(Alice),address(Charlie)) == true);
+        NFTHolder Alice = new NFTHolder();
+        NFTHolder Bob = new NFTHolder();
 
-        Charlie.transferFrom(address(collaction),address(Alice),thirdTokenId);
+        collaction.mint(address(Alice));
+        uint256 fourthTokenId = 3;
+
+        assert(collaction.balanceOf(address(Alice)) == 1);
+        assert(collaction.balanceOf(address(Bob)) == 0);
+        assert(collaction.ownerOf(fourthTokenId) == address(Alice));
+
+        Alice.operatorTo(address(collaction),address(Bob),true);
+        
+        assert(collaction.isApprovedForAll(address(Alice),address(Bob)) == true);
+
+        Bob.transferFrom(address(collaction),address(Alice),fourthTokenId);
 
         assert(collaction.balanceOf(address(Alice)) == 0);
-        assert(collaction.balanceOf(address(Charlie)) == 1);
-        assert(collaction.ownerOf(thirdTokenId) == address(Charlie));
+        assert(collaction.balanceOf(address(Bob)) == 1);
+        assert(collaction.ownerOf(fourthTokenId) == address(Bob));
     }
 
     function testBurn() internal{
 
-        Charlie.operatorTo(address(collaction),address(this),true);
-        collaction.burn(thirdTokenId);
+        NFTHolder Alice = new NFTHolder();
 
-        assert(collaction.balanceOf(address(Charlie)) == 0);   
+        collaction.mint(address(Alice));
+        uint256 fifththTokenId = 4;
+
+        assert(collaction.balanceOf(address(Alice)) == 1); 
+
+        Alice.operatorTo(address(collaction),address(this),true);
+        collaction.burn(fifththTokenId);
+
+        assert(collaction.balanceOf(address(Alice)) == 0);   
     }
 }
