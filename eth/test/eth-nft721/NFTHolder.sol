@@ -22,7 +22,7 @@ contract NFTHolder is IERC721Receiver {
         IERC721(collaction).setApprovalForAll(to,approved);
     }
 
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external view returns (bytes4){
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external view override returns (bytes4){
         return IERC721Receiver.onERC721Received.selector;
     }
 }
