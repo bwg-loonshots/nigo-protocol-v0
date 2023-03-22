@@ -6,7 +6,7 @@ import "./NFTHolder.sol";
 
 contract ERC721_test {
 
-    ERC721 collaction = new ERC721("nigoNFT","nigoNFT","http://localhost:8080/nft/metadata/");
+    ERC721 collection = new ERC721("nigoNFT","nigoNFT","http://localhost:8080/nft/metadata/");
 
     function test() external{
 
@@ -23,11 +23,11 @@ contract ERC721_test {
 
     function testMint() internal{
 
-        collaction.mint(msg.sender);
+        collection.mint(msg.sender);
         uint256 firstTokenId = 0;
 
-        assert(collaction.balanceOf(msg.sender) == 1);
-        assert(collaction.ownerOf(firstTokenId) == msg.sender);
+        assert(collection.balanceOf(msg.sender) == 1);
+        assert(collection.ownerOf(firstTokenId) == msg.sender);
     }
 
     function testTransferByOwner() internal{
@@ -35,17 +35,17 @@ contract ERC721_test {
         NFTHolder Alice = new NFTHolder();
         NFTHolder Bob = new NFTHolder();
 
-        collaction.mint(address(Alice));
+        collection.mint(address(Alice));
         uint256 secondTokenId = 1;
 
-        assert(collaction.balanceOf(address(Alice)) == 1);
-        assert(collaction.ownerOf(secondTokenId) == address(Alice));
+        assert(collection.balanceOf(address(Alice)) == 1);
+        assert(collection.ownerOf(secondTokenId) == address(Alice));
 
-        Alice.transferTo(address(collaction),address(Bob),secondTokenId);
+        Alice.transferTo(address(collection),address(Bob),secondTokenId);
 
-        assert(collaction.balanceOf(address(Alice)) == 0);
-        assert(collaction.balanceOf(address(Bob)) == 1);
-        assert(collaction.ownerOf(secondTokenId) == address(Bob));
+        assert(collection.balanceOf(address(Alice)) == 0);
+        assert(collection.balanceOf(address(Bob)) == 1);
+        assert(collection.ownerOf(secondTokenId) == address(Bob));
     }
 
     function testTransferByApproved() internal{
@@ -53,22 +53,22 @@ contract ERC721_test {
         NFTHolder Alice = new NFTHolder();
         NFTHolder Bob = new NFTHolder();
 
-        collaction.mint(address(Alice));
+        collection.mint(address(Alice));
         uint256 thirdTokenId = 2;
 
-        assert(collaction.balanceOf(address(Alice)) == 1);
-        assert(collaction.balanceOf(address(Bob)) == 0);
-        assert(collaction.ownerOf(thirdTokenId) == address(Alice));
+        assert(collection.balanceOf(address(Alice)) == 1);
+        assert(collection.balanceOf(address(Bob)) == 0);
+        assert(collection.ownerOf(thirdTokenId) == address(Alice));
 
-        Alice.approveTo(address(collaction),address(Bob),thirdTokenId);
+        Alice.approveTo(address(collection),address(Bob),thirdTokenId);
 
-        assert(collaction.getApproved(thirdTokenId) == address(Bob));
+        assert(collection.getApproved(thirdTokenId) == address(Bob));
 
-        Bob.transferFrom(address(collaction),address(Alice),thirdTokenId);
+        Bob.transferFrom(address(collection),address(Alice),thirdTokenId);
 
-        assert(collaction.balanceOf(address(Alice)) == 0);
-        assert(collaction.balanceOf(address(Bob)) == 1);
-        assert(collaction.ownerOf(thirdTokenId) == address(Bob));
+        assert(collection.balanceOf(address(Alice)) == 0);
+        assert(collection.balanceOf(address(Bob)) == 1);
+        assert(collection.ownerOf(thirdTokenId) == address(Bob));
     }
 
     function testOperator() internal{
@@ -76,36 +76,36 @@ contract ERC721_test {
         NFTHolder Alice = new NFTHolder();
         NFTHolder Bob = new NFTHolder();
 
-        collaction.mint(address(Alice));
+        collection.mint(address(Alice));
         uint256 fourthTokenId = 3;
 
-        assert(collaction.balanceOf(address(Alice)) == 1);
-        assert(collaction.balanceOf(address(Bob)) == 0);
-        assert(collaction.ownerOf(fourthTokenId) == address(Alice));
+        assert(collection.balanceOf(address(Alice)) == 1);
+        assert(collection.balanceOf(address(Bob)) == 0);
+        assert(collection.ownerOf(fourthTokenId) == address(Alice));
 
-        Alice.operatorTo(address(collaction),address(Bob),true);
+        Alice.operatorTo(address(collection),address(Bob),true);
         
-        assert(collaction.isApprovedForAll(address(Alice),address(Bob)) == true);
+        assert(collection.isApprovedForAll(address(Alice),address(Bob)) == true);
 
-        Bob.transferFrom(address(collaction),address(Alice),fourthTokenId);
+        Bob.transferFrom(address(collection),address(Alice),fourthTokenId);
 
-        assert(collaction.balanceOf(address(Alice)) == 0);
-        assert(collaction.balanceOf(address(Bob)) == 1);
-        assert(collaction.ownerOf(fourthTokenId) == address(Bob));
+        assert(collection.balanceOf(address(Alice)) == 0);
+        assert(collection.balanceOf(address(Bob)) == 1);
+        assert(collection.ownerOf(fourthTokenId) == address(Bob));
     }
 
     function testBurn() internal{
 
         NFTHolder Alice = new NFTHolder();
 
-        collaction.mint(address(Alice));
+        collection.mint(address(Alice));
         uint256 fifththTokenId = 4;
 
-        assert(collaction.balanceOf(address(Alice)) == 1); 
+        assert(collection.balanceOf(address(Alice)) == 1); 
 
-        Alice.operatorTo(address(collaction),address(this),true);
-        collaction.burn(fifththTokenId);
+        Alice.operatorTo(address(collection),address(this),true);
+        collection.burn(fifththTokenId);
 
-        assert(collaction.balanceOf(address(Alice)) == 0);   
+        assert(collection.balanceOf(address(Alice)) == 0);   
     }
 }
