@@ -6,7 +6,7 @@ contract StringMload {
     string storageValue = "storaged text";
 
     /*
-    * array는 reference type이기 때문에 
+    * string은 reference type이기 때문에 
     * assembly에서 변수 그대로 할당할 경우,
     * 참조 memory 주소(pointer)를 반환
     */
@@ -17,7 +17,6 @@ contract StringMload {
         string memory mem = storageValue;
 
         //free memory pointer 시작 주소 128(=0x80)를 기준으로 
-        //uint[] 경우 1칸에 0x20
         assembly {
             t := test //128(=0x80)
             m := mem //192(=0xC0) == 128 + 64(=0x20 * 2)

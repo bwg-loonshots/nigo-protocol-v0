@@ -12,9 +12,9 @@ contract EventLog {
         bytes32 eventHash3 = keccak256("TestEvent3(uint256,uint256,address)");
 
         assembly {
-            mstore(0x40,123)
+            mstore(0x40,123) //log1 parameter
 
-            mstore(0x80,456)
+            mstore(0x80,456) //log2 parameter
             mstore(0xA0,789)
 
             log1(0x40,0x20,eventHash1)

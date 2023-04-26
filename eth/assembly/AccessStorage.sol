@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 contract AccessStorage {
-    uint uintValue = 123;
+    uint private uintValue = 123;
     address addrValue = address(this);
     string strValue = "testStrings";
     uint[5] staticArray = [1,2,3,4,5];
@@ -35,7 +35,7 @@ contract AccessStorage {
         strVal = string( abi.encodePacked( strVal_byte ) );
     }
 
-    function getArrays(uint index) public view returns (uint staticSlot, uint staticVal, uint dynamicSlot, uint dynamicLen, bytes32 dynamicValue) {
+    function getArrays(uint index) public view returns (uint staticSlot, uint staticVal, uint dynamicSlot, uint dynamicLen, uint dynamicValue) {
         assembly {
             staticSlot := staticArray.slot //static array는 길이 만큼 slot을 할당받아 
             staticVal := sload(add(staticSlot, mul(1,index))) //각 slot에 변수 저장
