@@ -23,18 +23,31 @@ contract SecurityToken is IERC20 {
     address public mintor;
 
     constructor(
-        uint256 _totalSupply,
         string memory _name,
         uint8 _decimal,
         string memory _symbol
     ) {
-
-        balances[msg.sender] = _totalSupply;
-        totalSupply = _totalSupply;
         name = _name;
         decimals = _decimal;
         symbol = _symbol;
         mintor = msg.sender;
+
+    }
+
+    function mint(address subscriber, uint256 amount) external {
+        require(msg.sender == mintor, "unauthorized operation");
+        _mint(subscriber, amount);
+    }
+
+    function mint(address[] memory subscribers, uint256[] memory values, uint256 _totalSupply) external {
+        require(msg.sender == mintor, "unauthorized operation");
+        require(subscribers.length == values.length, "invalid arguments");
+
+        for(uint8 i = 0; i < subscribers.length; i++) {
+            _mint(subscribers[i], values[i]);
+        }
+
+        require(totalSupply == _totalSupply, "not matched amount for total supplied");
 
     }
 
