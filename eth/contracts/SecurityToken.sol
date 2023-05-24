@@ -108,7 +108,7 @@ contract SecurityToken is IERC20 {
             mapping(uint256 => uint256) storage snapshot = balanceSnapshot[msg.sender];
             for(uint j = 0; j < record.length; j++) {
                 uint256 _startBlock = record[j];
-                uint256 _endBlock = record[j + 1];
+                uint256 _endBlock = j + 1 == record.length ? block.number : record[j + 1];
                 if(_startBlock > income.endBlock || _endBlock < income.startBlock) {
                     continue;
                 }
